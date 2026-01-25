@@ -1,0 +1,49 @@
+<div class="transition-all min-h-screen bg-gray-50">
+  <app-header pageTitle="Admin Dashboard"></app-header>
+
+  <main class="p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <app-stat-card 
+        *ngFor="let stat of statsCards" 
+        [title]="stat.title" 
+        [value]="stat.value" 
+        [icon]="stat.icon"
+        [iconBgClass]="stat.iconBgClass" 
+        [iconColorClass]="stat.iconColorClass">
+      </app-stat-card>
+    </div>
+
+    <div class="mb-8">
+      <app-data-table
+        title="Teachers"
+        [columns]="teacherColumns"
+        [rows]="teachers"
+        [showViewAll]="true"
+        viewAllRoute="admin/teachers"
+        [enableActions]="false"
+      ></app-data-table>
+    </div>
+    
+    <div class="mb-8">
+      <app-data-table
+        title="Students"
+        [columns]="studentColumns"
+        [rows]="students"
+        [showViewAll]="true"
+        viewAllRoute="admin/students"
+        [enableActions]="false"
+      ></app-data-table>
+    </div>
+    
+    <div class="mb-8">
+      <app-data-table
+        title="Courses"
+        [columns]="courseColumns"
+        [rows]="courses"
+        [showViewAll]="true"
+        viewAllRoute="admin/courses"
+        [enableActions]="false"
+      ></app-data-table>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,19 @@
+<div class="space-y-3 bg-gray-100 p-5 rounded-lg">
+  <h2 class="text-blue-950 font-bold text-xl">Notifications</h2>
+  <div
+    *ngFor="let n of notifications"
+    class="flex items-start p-4 rounded-2xl shadow-sm transition hover:shadow-md"
+    [ngClass]="n.bgClass"
+  >
+    <div
+      class="flex items-center justify-center w-10 h-10 rounded-full mr-4"
+      [ngClass]="[n.iconBgClass, n.iconColorClass]"
+    >
+      <i [class]="n.icon"></i>
+    </div>
+    <div>
+      <h4 class="font-semibold text-gray-800">{{ n.title }}</h4>
+      <p class="text-gray-600 text-sm">{{ n.message }}</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,32 @@
+<section class="py-24 bg-background-light">
+  <div class="max-w-6xl mx-auto px-8">
+    <!-- Section heading -->
+    <app-section-title 
+      title="One Platform, Many Institutions" 
+      color="dark">
+    </app-section-title>
+    
+    <!-- Display tenant cards in grid layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
+      <app-card 
+        *ngFor="let tenant of tenants" 
+        type="tenant" 
+        [equalHeight]="true"
+        class="fade-in">
+        
+        <!-- Tenant Icon ...property is mentioned in .ts-->
+        <div class="text-4xl mb-4">{{ tenant.icon }}</div>
+        
+        <!-- Tenant Title.... from .ts-->
+        <h3 class="text-text-dark mb-4 font-semibold text-xl font-poppins">
+          {{ tenant.title }}
+        </h3>
+        
+        <!-- Tenant Description...from .ts -->
+        <p class="text-text-muted leading-relaxed text-sm">
+          {{ tenant.description }}
+        </p>
+      </app-card>
+    </div>
+  </div>
+</section>

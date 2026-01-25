@@ -1,0 +1,94 @@
+<section class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-2xl font-semibold text-gray-900 mb-6">System Settings</h2>
+
+  <form class="space-y-6">
+    <!-- Upload Logo -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2"
+        >Upload Logo</label
+      >
+      <div class="flex items-center space-x-4">
+        <img
+          [src]="logoPreview || 'assets/images/profile.png'"
+          alt="System Logo"
+          class="h-12 w-12 rounded-full border object-cover"
+        />
+        <label
+          class="cursor-pointer bg-blue-950 text-white px-4 py-2 rounded-md shadow hover:bg-gray-500 active:bg-black text-sm font-medium transition-all duration-200"
+        >
+          <i class="fas fa-upload mr-2"></i> Upload
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onFileChange($event)"
+            class="hidden"
+          />
+        </label>
+      </div>
+    </div>
+
+    <!-- Organization Name -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700"
+        >Organization Name</label
+      >
+      <input
+        type="text"
+        value="Acme Corporation"
+        placeholder="Enter organization name"
+        class="mt-1 block w-full rounded-lg border-gray-300 px-4 py-2 text-gray-900 shadow-sm focus:border-blue-950 focus:ring focus:ring-blue-900 focus:ring-opacity-40"
+      />
+    </div>
+
+    <!-- Email Notifications Toggle -->
+    <div class="flex items-center justify-between">
+      <span class="text-sm font-medium text-gray-700">Email Notifications</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" class="sr-only peer" checked />
+        <div
+          class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-slate-900 transition"
+        ></div>
+        <div
+          class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"
+        ></div>
+      </label>
+    </div>
+
+    <!-- New User Registration Toggle -->
+    <div class="flex items-center justify-between">
+      <span class="text-sm font-medium text-gray-700"
+        >New User Registration</span
+      >
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" class="sr-only peer" />
+        <div
+          class="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-slate-900 transition"
+        ></div>
+        <div
+          class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition peer-checked:translate-x-5"
+        ></div>
+      </label>
+    </div>
+
+    <!-- ✅ Buttons Row -->
+    <div class="pt-6 flex justify-end space-x-3">
+      <!-- Save Button -->
+      <app-button
+        customColor="bg-blue-950 text-white hover:bg-gray-500 cursor-pointer px-6 py-2 rounded-lg"
+        size="md"
+        type="submit"
+      >
+        Save Settings
+      </app-button>
+
+      <!-- Cancel Button -->
+      <app-button
+        customColor="bg-gray-200 text-gray-700 hover:bg-gray-300 px-6 py-2 rounded-lg"
+        size="md"
+        type="button"
+      >
+        Cancel
+      </app-button>
+    </div>
+  </form>
+</section>

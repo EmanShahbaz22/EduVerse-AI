@@ -1,0 +1,8 @@
+<app-sidebar (toggleSidebar)="isSidebarOpen = $event"></app-sidebar>
+
+<div
+  class="transition-all duration-300"
+  [ngClass]="{ 'ml-64': isSidebarOpen, 'ml-20': !isSidebarOpen }"
+>
+  <router-outlet></router-outlet>
+</div>

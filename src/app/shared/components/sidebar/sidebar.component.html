@@ -1,0 +1,84 @@
+<!-- Hamburger Button (Visible on all screens) -->
+<button
+  (click)="toggleSidebarAction()"
+  class="fixed top-4 left-4 z-[70] bg-slate-900 text-white p-2 rounded-md"
+>
+  <i class="fa-solid fa-bars text-xl"></i>
+</button>
+
+<!-- Background Overlay for Mobile -->
+<div
+  *ngIf="isMobile && isMobileSidebarVisible"
+  (click)="closeMobileSidebar()"
+  class="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[60]"
+></div>
+
+<!-- Sidebar -->
+<div
+  class="bg-slate-900 text-white fixed top-0 left-0 h-screen flex flex-col z-[70] transition-all duration-300 ease-in-out"
+  [ngClass]="{
+    'w-64': !isMobile && isOpen,
+    'w-20': !isMobile && !isOpen,
+
+    'translate-x-0 w-4/5': isMobile && isMobileSidebarVisible,
+    '-translate-x-full w-4/5': isMobile && !isMobileSidebarVisible
+  }"
+>
+  <!-- Header -->
+  <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+    <!-- Logo -->
+    <h1
+      class="text-xl font-bold text-gray-50 transition-all duration-300"
+      [class.hidden]="!isMobile && !isOpen"
+    >
+      EduHub
+    </h1>
+
+    <!-- Desktop Hamburger (aligned right inside header) -->
+    <button
+      (click)="toggleDesktopSidebar()"
+      class="hidden md:block text-gray-300 hover:text-white"
+    >
+      <i class="fa-solid fa-bars text-2xl"></i>
+    </button>
+
+    <!-- Mobile Close Button -->
+    <button
+      *ngIf="isMobile"
+      (click)="closeMobileSidebar()"
+      class="text-gray-300 hover:text-white md:hidden"
+    >
+      <i class="fa-solid fa-xmark text-2xl"></i>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 py-4 overflow-y-auto">
+    <ul class="space-y-2">
+      <li *ngFor="let item of menuItems">
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="bg-slate-700 text-white"
+          [routerLinkActiveOptions]="{ exact: true }"
+          class="flex items-center px-6 py-3 text-gray-300 hover:bg-slate-700 hover:text-white transition-colors"
+          (click)="closeMobileSidebar()"
+        >
+          <i class="{{ item.icon }} mr-3 text-lg"></i>
+          <span [class.hidden]="!isMobile && !isOpen">{{ item.label }}</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Logout -->
+  <div class="p-4 border-t border-slate-800">
+    <app-button
+      customColor="bg-red-700 text-white"
+      [fullWidth]="true"
+      (buttonClick)="logout()"
+    >
+      <i class="fa-solid fa-right-from-bracket mr-2"></i>
+      <span *ngIf="isMobile || isOpen">Logout</span>
+    </app-button>
+  </div>
+</div>

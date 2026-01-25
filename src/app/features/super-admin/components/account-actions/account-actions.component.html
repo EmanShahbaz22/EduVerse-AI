@@ -1,0 +1,26 @@
+<section class="bg-white rounded-lg shadow-sm p-6 border border-red-50">
+    <div class="flex items-center space-x-3 mb-3">
+        <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+        <h4 class="text-lg font-semibold text-red-600">Account Actions</h4>
+    </div>
+
+    <p class="text-sm text-gray-600 mb-4">
+        These actions are permanent and cannot be undone. Please proceed with caution.
+    </p>
+
+    <div class="flex flex-wrap gap-3">
+        <app-button
+            customColor="bg-red-600 text-white hover:bg-red-700 px-4 py-2"
+            (buttonClick)="confirmDeactivate()"
+        >
+            <i class="fa-solid fa-power-off mr-2"></i> Deactivate Account
+        </app-button>
+
+        <app-button
+            customColor="bg-transparent border border-red-200 text-red-600 px-4 py-2"
+            (buttonClick)="confirmDelete()"
+        >
+            <i class="fa-solid fa-trash mr-2"></i> Delete Account
+        </app-button>
+    </div>
+</section>

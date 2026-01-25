@@ -1,0 +1,19 @@
+<div class="flex">
+  <app-sidebar
+    role="admin"
+    (toggleSidebar)="onSidebarToggle($event)"
+  ></app-sidebar>
+
+  <div
+    class="transition-all duration-300 min-h-screen bg-gray-50 w-full"
+    [ngClass]="{
+      'ml-64': !isMobile && isSidebarOpen,
+      'ml-20': !isMobile && !isSidebarOpen,
+      'ml-0': isMobile
+    }"
+  >
+    <div>
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+<footer class="bg-primary-navy py-12 pb-4 text-text-light">
+  <div class="max-w-6xl mx-auto px-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+      <div *ngFor="let section of footerSections" class="footer-section">
+        <h4 class="text-primary-light-blue mb-4 font-semibold text-lg font-poppins">
+          {{ section.title }}
+        </h4>
+        <div class="space-y-2">
+          <a 
+            *ngFor="let link of section.links"
+            [href]="link.href" 
+            class="block text-text-light opacity-80 transition-all duration-300 hover:text-primary-light-blue hover:opacity-100">
+            {{ link.label }}
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="text-center pt-8 border-t border-primary-light-blue/20 opacity-70">
+      <p>&copy; {{ currentYear }} EduVerse AI. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
