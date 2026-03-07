@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   AdminChangePasswordPayload,
   AdminProfile,
@@ -11,7 +12,7 @@ import {
   providedIn: 'root',
 })
 export class AdminService {
-  private readonly API_URL = 'http://localhost:8000/admin';
+  private readonly API_URL = `${environment.apiUrl}/admin`;
 
   constructor(private http: HttpClient) {}
 

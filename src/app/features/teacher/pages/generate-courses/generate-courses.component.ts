@@ -11,6 +11,8 @@ import {
 import { NgFor, NgIf } from '@angular/common';
 import { CourseService } from '../../../../core/services/course.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { ToastService } from '../../../../shared/services/toast.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-generate-courses',
@@ -48,8 +50,9 @@ export class GenerateCoursesComponent {
 
   constructor(
     private fb: FormBuilder,
-    private courseService: CourseService, // UPDATED: Injected CourseService
-    private authService: AuthService      // UPDATED: Injected AuthService
+    private courseService: CourseService,
+    private authService: AuthService,
+    private toastService: ToastService,
   ) {
     this.courseForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]],
@@ -113,18 +116,20 @@ export class GenerateCoursesComponent {
         // UPDATED: Call real backend service
         this.courseService.createCourse(courseData).subscribe({
           next: (res) => {
-
             this.courseCreated.emit(res);
+            this.toastService.success('Course created successfully.');
             this.isSubmitting = false;
           },
           error: (err) => {
             console.error('Course creation failed', err);
-            alert(`Failed to create course: ${err.error?.detail || 'Unknown error'}`);
+            this.toastService.error(
+              getApiErrorMessage(err, 'Failed to create course.')
+            );
             this.isSubmitting = false;
           }
         });
       } else {
-        alert('You must be logged in as a teacher to create courses.');
+        this.toastService.error('You must be logged in as a teacher to create courses.');
       }
     } else {
       Object.keys(this.courseForm.controls).forEach((key) => {

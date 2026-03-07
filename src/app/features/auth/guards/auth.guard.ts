@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { map } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 /**
@@ -11,22 +12,26 @@ export const AuthGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  const isAuthenticated = authService.isAuthenticated();
-  const path = route.routeConfig?.path;
+  return authService.waitForSessionRestore().pipe(
+    map(() => {
+      const isAuthenticated = authService.isAuthenticated();
+      const path = route.routeConfig?.path;
 
-  // Block authenticated users from auth pages
-  if (isAuthenticated && (path === 'login' || path === 'signup')) {
-    redirectByRole(authService, router);
-    return false;
-  }
+      // Block authenticated users from auth pages
+      if (isAuthenticated && (path === 'login' || path === 'signup')) {
+        return redirectByRole(authService, router);
+      }
 
-  // Block unauthenticated users from protected routes
-  if (!isAuthenticated && state.url !== '/login' && state.url !== '/signup') {
-    router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-    return false;
-  }
+      // Block unauthenticated users from protected routes
+      if (!isAuthenticated && state.url !== '/login' && state.url !== '/signup') {
+        return router.createUrlTree(['/login'], {
+          queryParams: { returnUrl: state.url },
+        });
+      }
 
-  return true;
+      return true;
+    }),
+  );
 };
 
 function redirectByRole(authService: AuthService, router: Router) {
@@ -34,18 +39,14 @@ function redirectByRole(authService: AuthService, router: Router) {
 
   switch (role) {
     case 'admin':
-      router.navigate(['/admin/dashboard']);
-      break;
+      return router.createUrlTree(['/admin/dashboard']);
     case 'teacher':
-      router.navigate(['/teacher/dashboard']);
-      break;
+      return router.createUrlTree(['/teacher/dashboard']);
     case 'student':
-      router.navigate(['/student/dashboard']);
-      break;
+      return router.createUrlTree(['/student/dashboard']);
     case 'super_admin':
-      router.navigate(['/super-admin/dashboard']);
-      break;
+      return router.createUrlTree(['/super-admin/dashboard']);
     default:
-      router.navigate(['/login']);
+      return router.createUrlTree(['/login']);
   }
 }

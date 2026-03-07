@@ -10,6 +10,8 @@ import {
 import { StudentEnrollmentChartComponent } from '../../components/student-enrollment-chart/student-enrollment-chart.component';
 import { CourseService, BackendCourse } from '../../../../core/services/course.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { ToastService } from '../../../../shared/services/toast.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -33,8 +35,9 @@ export class TeacherDashboardComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private courseService: CourseService, // UPDATED: Injected CourseService
-    private authService: AuthService      // UPDATED: Injected AuthService
+    private courseService: CourseService,
+    private authService: AuthService,
+    private toastService: ToastService,
   ) { }
 
   quickLinks = [
@@ -127,6 +130,9 @@ export class TeacherDashboardComponent implements OnInit {
         },
         error: (err: { message: string }) => {
           console.error('Error loading teacher dashboard data', err);
+          this.toastService.error(
+            getApiErrorMessage(err, 'Unable to load dashboard data right now.')
+          );
           this.loading = false;
         }
       });
@@ -149,4 +155,3 @@ interface StatCard {
   iconBgClass: string;
   iconColorClass: string;
 }
-

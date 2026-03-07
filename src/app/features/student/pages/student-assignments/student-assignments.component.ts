@@ -36,6 +36,7 @@ export class StudentAssignmentsComponent implements OnInit {
   loading = false;
   errorMessage: string | null = null;
   successMessage: string | null = null;
+  infoMessage: string | null = null;
 
   studentProfile!: StudentProfile;
   tenantId = '';
@@ -231,7 +232,7 @@ export class StudentAssignmentsComponent implements OnInit {
   handleViewFeedback(assignment: Assignment): void {
     const submission = this.submissions.get(assignment.id);
     if (submission?.feedback) {
-      alert(submission.feedback);
+      this.showInfo(`Feedback: ${submission.feedback}`);
     }
   }
 
@@ -243,5 +244,10 @@ export class StudentAssignmentsComponent implements OnInit {
   private showSuccess(msg: string): void {
     this.successMessage = msg;
     setTimeout(() => (this.successMessage = null), 3000);
+  }
+
+  private showInfo(msg: string): void {
+    this.infoMessage = msg;
+    setTimeout(() => (this.infoMessage = null), 5000);
   }
 }
