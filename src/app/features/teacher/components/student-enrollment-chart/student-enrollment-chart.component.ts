@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
@@ -10,9 +10,14 @@ import { ChartConfiguration, ChartOptions } from 'chart.js';
   templateUrl: './student-enrollment-chart.component.html',
   styleUrls: ['./student-enrollment-chart.component.css']
 })
-export class StudentEnrollmentChartComponent {
-  subjects = ['Math101', 'HistoryT201', 'CS101', 'English'];
-  enrollments = [25, 22, 20, 30];
+export class StudentEnrollmentChartComponent implements OnChanges {
+  @Input() subjects: string[] = ['Math101', 'HistoryT201', 'CS101', 'English'];
+  @Input() enrollments: number[] = [25, 22, 20, 30];
+
+  private readonly barColor = '#23A997';
+  private readonly barHoverColor = '#1b8c7d';
+  private readonly axisColor = '#64748b';
+  private readonly gridColor = 'rgba(148, 163, 184, 0.18)';
 
   barChartData: ChartConfiguration<'bar'>['data'] = {
     labels: this.subjects,
@@ -20,28 +25,56 @@ export class StudentEnrollmentChartComponent {
       {
         label: 'Enrolled Students',
         data: this.enrollments,
-        backgroundColor: ['#6366f1', '#22c55e', '#f97316', '#ef4444'],
-        borderRadius: 6,
+        backgroundColor: this.barColor,
+        hoverBackgroundColor: this.barHoverColor,
+        borderRadius: 4,
+        maxBarThickness: 50,
       },
     ],
   };
   barChartOptions: ChartOptions<'bar'> = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: true,
         position: 'top',
-        labels: { color: '#1e3a8a' },
+        labels: { color: this.axisColor },
       },
     },
     scales: {
       x: {
-        ticks: { color: '#1e3a8a' },
+        ticks: { color: this.axisColor },
+        grid: {
+          display: false,
+        },
       },
       y: {
         beginAtZero: true,
-        ticks: { color: '#1e3a8a' },
+        ticks: { color: this.axisColor },
+        grid: {
+          color: this.gridColor,
+          drawBorder: false,
+        },
       },
     },
   };
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['subjects'] || changes['enrollments']) {
+      this.barChartData = {
+        labels: this.subjects,
+        datasets: [
+          {
+            label: 'Enrolled Students',
+            data: this.enrollments,
+            backgroundColor: this.barColor,
+            hoverBackgroundColor: this.barHoverColor,
+            borderRadius: 4,
+            maxBarThickness: 50,
+          },
+        ],
+      };
+    }
+  }
 }

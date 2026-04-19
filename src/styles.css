@@ -1,3 +1,143 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html, body {
+    overflow-x: hidden;
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply text-slate-900 antialiased;
+  }
+
+  /* Custom Sleek Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out forwards;
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+/* intl-tel-input Globals */
+.iti {
+  width: 100%;
+}
+
+.iti__country-list {
+  z-index: 9999 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+  border: 1px solid #e2e8f0 !important;
+  background-color: white !important;
+  color: #181F39 !important;
+  -webkit-text-fill-color: #181F39 !important;
+  padding: 8px 0 !important;
+}
+
+.iti__dropdown-content {
+  background-color: white !important;
+  color: #181F39 !important;
+  -webkit-text-fill-color: #181F39 !important;
+}
+
+.iti__search-input {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background-color: white !important;
+  color: #181F39 !important;
+  -webkit-text-fill-color: #181F39 !important;
+  margin: 8px !important;
+  padding: 8px 32px 8px 36px !important;
+  width: calc(100% - 16px) !important;
+}
+
+.iti__search-input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+.iti__search-input-wrapper,
+.iti__no-results {
+  background-color: white !important;
+  color: #181F39 !important;
+}
+
+.iti__country {
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  background-color: white !important;
+  color: #181F39 !important;
+  -webkit-text-fill-color: #181F39 !important;
+}
+
+.iti__country-name,
+.iti__selected-country,
+.iti__selected-country-primary,
+.iti__selected-dial-code {
+  color: #181F39 !important;
+  -webkit-text-fill-color: #181F39 !important;
+}
+
+.iti__dial-code,
+.iti__country-check,
+.iti__search-icon-svg,
+.iti__search-clear {
+  color: #64748b !important;
+  fill: #64748b !important;
+  stroke: #64748b !important;
+}
+
+.iti__country:hover {
+  background-color: #f8fafc !important;
+}
+
+.iti__highlight {
+  background-color: rgba(35, 169, 151, 0.05) !important;
+}

@@ -1,137 +1,67 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { ChangePasswordComponent } from '../../../../shared/components/change-password/change-password.component';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  SubscriptionPlan,
-  SubscriptionPlanService,
-} from '../../services/subscription-plan.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
-import { ToastService } from '../../../../shared/services/toast.service';
+import { PhoneInputComponent } from '../../../../shared/components/phone-input/phone-input.component';
+import { CountrySelectComponent } from '../../../../shared/components/country-select/country-select.component';
 
 @Component({
   selector: 'app-tenant-info-form',
   standalone: true,
-  imports: [CommonModule, ButtonComponent, ChangePasswordComponent, ReactiveFormsModule],
+  imports: [CommonModule, ButtonComponent, ChangePasswordComponent, ReactiveFormsModule, PhoneInputComponent, CountrySelectComponent],
   templateUrl: './tenant-info-form.component.html',
   styleUrl: './tenant-info-form.component.css'
 })
-export class TenantInfoFormComponent {
+export class TenantInfoFormComponent implements OnChanges {
   @Input() tenant: any = null;
   @Output() save = new EventEmitter<any>();
 
   form!: FormGroup;
   showChangePassword = false;
-  availablePlans: SubscriptionPlan[] = [];
-  loadingPlans = false;
+  logoPreview: string | null = 'assets/images/profile.png';
 
-  constructor(
-    private fb: FormBuilder,
-    private subscriptionPlanService: SubscriptionPlanService,
-    private toastService: ToastService,
-  ) {
+  constructor(private fb: FormBuilder) {
     this.form = this.fb.group({
       tenantName: ['', Validators.required],
       adminEmail: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
       contactNumber: ['', Validators.required],
-      address: [''],
-      subscriptionPlanCode: [''],
-      subscriptionCategory: ['free', Validators.required],
-      subscriptionPlan: [''],
-      subscriptionBillingCycle: ['monthly'],
-      subscriptionPriceMonthly: [0],
-      subscriptionStartDate: [''],
-      subscriptionExpiryDate: [''],
-      subscriptionNotes: [''],
+      address: ['']
     });
-
-    this.loadPlanTemplates();
   }
 
-  private toDateInput(value: any): string {
-    if (!value) return '';
-    const dt = new Date(value);
-    if (Number.isNaN(dt.getTime())) return '';
-    return dt.toISOString().slice(0, 10);
-  }
-
-  ngOnChanges(): void {
-    if (this.tenant) {
-      const details = this.tenant.subscriptionDetails || {};
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['tenant'] && changes['tenant'].currentValue) {
+      const data = changes['tenant'].currentValue;
       this.form.patchValue({
-        tenantName: this.tenant.name || '',
-        adminEmail: this.tenant.adminEmail || '',
-        contactNumber: this.tenant.contactNumber || '',
-        address: this.tenant.address || '',
-        subscriptionPlanCode: this.tenant.subscriptionPlan || '',
-        subscriptionCategory:
-          this.tenant.subscriptionCategory ||
-          details.category ||
-          'free',
-        subscriptionPlan:
-          this.tenant.subscriptionPlan ||
-          details.plan ||
-          '',
-        subscriptionBillingCycle:
-          this.tenant.subscriptionBillingCycle ||
-          details.billingCycle ||
-          'monthly',
-        subscriptionPriceMonthly:
-          this.tenant.subscriptionPriceMonthly ??
-          details.pricePerMonth ??
-          0,
-        subscriptionStartDate: this.toDateInput(
-          this.tenant.subscriptionStartDate || details.startDate,
-        ),
-        subscriptionExpiryDate: this.toDateInput(
-          this.tenant.subscriptionExpiryDate || details.expiryDate,
-        ),
-        subscriptionNotes:
-          this.tenant.subscriptionNotes ||
-          details.notes ||
-          '',
+        tenantName: data.tenantName || '',
+        adminEmail: data.adminEmail || '',
+        contactNumber: data.contactNumber || '',
+        address: data.address || data.country || ''
       });
+      this.logoPreview = data.tenantLogoUrl || 'assets/images/profile.png';
     }
-  }
-
-  private loadPlanTemplates(): void {
-    this.loadingPlans = true;
-    this.subscriptionPlanService.getPlans('active').subscribe({
-      next: (plans) => {
-        this.availablePlans = plans;
-        this.loadingPlans = false;
-      },
-      error: (err) => {
-        this.loadingPlans = false;
-        this.toastService.error(
-          getApiErrorMessage(err, 'Unable to load subscription plan templates.'),
-        );
-      },
-    });
-  }
-
-  onPlanTemplateChange(event: Event): void {
-    const selectedCode = (event.target as HTMLSelectElement).value;
-    if (!selectedCode) {
-      this.form.patchValue({ subscriptionPlanCode: '' });
-      return;
-    }
-
-    const selected = this.availablePlans.find((plan) => plan.code === selectedCode);
-    if (!selected) return;
-
-    this.form.patchValue({
-      subscriptionPlanCode: selected.code,
-      subscriptionPlan: selected.code,
-      subscriptionCategory: selected.category,
-      subscriptionBillingCycle: selected.billingCycle,
-      subscriptionPriceMonthly: selected.pricePerMonth,
-    });
   }
 
   toggleChangePassword() {
     this.showChangePassword = !this.showChangePassword;
+  }
+
+  onFileChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      this.logoPreview = reader.result as string;
+    };
+
+    reader.readAsDataURL(file);
   }
 
   onSave() {
@@ -140,11 +70,11 @@ export class TenantInfoFormComponent {
       return;
     }
 
-    const rawValue = this.form.getRawValue();
+    const { country, ...tenantData } = this.tenant || {};
     const payload = {
-      ...this.tenant,
-      ...rawValue,
-      subscriptionPlan: rawValue.subscriptionPlanCode || rawValue.subscriptionPlan || '',
+      ...tenantData,
+      ...this.form.getRawValue(),
+      tenantLogoUrl: this.logoPreview === 'assets/images/profile.png' ? '' : this.logoPreview || '',
     };
     this.save.emit(payload);
   }

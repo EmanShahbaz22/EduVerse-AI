@@ -1,87 +1,105 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
-import { TenantService } from '../../services/tenant.service';
+import { ChangePasswordComponent } from '../../../../shared/components/change-password/change-password.component';
+import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
+import { SuperAdminService, SuperAdminResponse } from '../../services/super-admin.service';
+import { CountrySelectComponent } from '../../../../shared/components/country-select/country-select.component';
+import { PhoneInputComponent } from '../../../../shared/components/phone-input/phone-input.component';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
-import { SubscriptionPlanService } from '../../services/subscription-plan.service';
 
 @Component({
   selector: 'app-super-admin-settings',
   standalone: true,
-  imports: [CommonModule, RouterModule, HeaderComponent],
+  imports: [CommonModule, HeaderComponent, ReactiveFormsModule, ChangePasswordComponent, PhoneInputComponent, CountrySelectComponent],
   templateUrl: './super-admin-settings.component.html',
   styleUrl: './super-admin-settings.component.css'
 })
-export class SuperAdminSettingsComponent {
-  profileName = 'Super Admin';
-  loadingOverview = false;
-  loadingPlans = false;
-  activePlans = 0;
-  inactivePlans = 0;
-  lastSyncedAt: Date | null = null;
-
-  overview = {
-    totalTenants: 0,
-    activeUsers: 0,
-    totalCourses: 0,
-    revenue: 0,
-  };
+export class SuperAdminSettingsComponent implements OnInit {
+  profileForm!: FormGroup;
+  profile: SuperAdminResponse | null = null;
+  loading: boolean = true;
 
   constructor(
-    private tenantService: TenantService,
-    private authService: AuthService,
-    private toastService: ToastService,
-    private subscriptionPlanService: SubscriptionPlanService,
-  ) {}
-
-  ngOnInit(): void {
-    const user = this.authService.getUser();
-    if (user?.fullName) {
-      this.profileName = user.fullName;
-    }
-    this.loadOverview();
-    this.loadPlanSummary();
+    private fb: FormBuilder,
+    private superAdminService: SuperAdminService,
+    private confirmDialogService: ConfirmDialogService,
+    private authService: AuthService
+  ) {
+    this.initForm();
   }
 
-  loadOverview(): void {
-    this.loadingOverview = true;
-    this.tenantService.getDashboardOverview().subscribe({
-      next: (data) => {
-        this.loadingOverview = false;
-        this.overview = {
-          totalTenants: data.stats?.totalTenants ?? 0,
-          activeUsers: data.stats?.activeUsers ?? 0,
-          totalCourses: data.stats?.totalCourses ?? 0,
-          revenue: data.stats?.revenue ?? 0,
-        };
-        this.lastSyncedAt = new Date();
-      },
-      error: (err) => {
-        this.loadingOverview = false;
-        this.toastService.error(
-          getApiErrorMessage(err, 'Unable to load settings overview.'),
-        );
-      },
+  ngOnInit(): void {
+    this.loadProfile();
+  }
+
+  private initForm(): void {
+    this.profileForm = this.fb.group({
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      email: [{ value: '', disabled: true }],
+      contactNo: [''],
+      country: ['']
     });
   }
 
-  loadPlanSummary(): void {
-    this.loadingPlans = true;
-    this.subscriptionPlanService.getPlans().subscribe({
-      next: (plans) => {
-        this.loadingPlans = false;
-        this.activePlans = plans.filter((p) => p.status === 'active').length;
-        this.inactivePlans = plans.filter((p) => p.status !== 'active').length;
+  private loadProfile(): void {
+    this.loading = true;
+    this.superAdminService.getProfile().subscribe({
+      next: (data) => {
+        this.profile = data;
+        const user = data.user;
+        this.profileForm.patchValue({
+          fullName: user.fullName || '',
+          email: user.email || '',
+          contactNo: user.contactNo || '',
+          country: user.country || ''
+        });
+        this.syncCurrentUserProfile(user);
+        this.loading = false;
       },
       error: (err) => {
-        this.loadingPlans = false;
-        this.toastService.error(
-          getApiErrorMessage(err, 'Unable to load subscription plan summary.'),
-        );
+        console.error("Failed to load profile", err);
+        this.loading = false;
+      }
+    });
+  }
+
+  async onSave(): Promise<void> {
+    if (this.profileForm.invalid) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
+
+    const payload = this.profileForm.getRawValue();
+    // remove empty strings or disabled
+    const updates = {
+      fullName: payload.fullName,
+      contactNo: payload.contactNo,
+      country: payload.country
+    };
+
+    this.superAdminService.updateProfile(updates).subscribe({
+      next: async (res) => {
+        this.profile = res;
+        this.syncCurrentUserProfile(res.user);
+        await this.confirmDialogService.alert("Profile details successfully updated!");
       },
+      error: async (err) => {
+        await this.confirmDialogService.alert("Failed to update profile", "Error");
+      }
+    });
+  }
+
+  // Uses auth service automatically via component
+  onPasswordChanged(event: any): void {
+    // Password change logic handled by inner component
+  }
+
+  private syncCurrentUserProfile(user: SuperAdminResponse['user']): void {
+    this.authService.updateCurrentUser({
+      fullName: user.fullName || undefined,
+      profileImageURL: user.profileImageURL || undefined,
     });
   }
 }

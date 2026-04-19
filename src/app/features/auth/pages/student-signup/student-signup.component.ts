@@ -1,14 +1,15 @@
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule, NgForm } from '@angular/forms';
 import { CommonModule, NgIf } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { CountrySelectComponent } from '../../../../shared/components/country-select/country-select.component';
+import { PhoneInputComponent } from '../../../../shared/components/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-student-signup',
   standalone: true,
-  imports: [FormsModule, CommonModule, NgIf, RouterLink],
+  imports: [FormsModule, CommonModule, NgIf, RouterModule, PhoneInputComponent, CountrySelectComponent],
   templateUrl: './student-signup.component.html',
   styleUrls: ['./student-signup.component.css'],
 })
@@ -19,9 +20,12 @@ export class StudentSignupComponent {
   confirmPassword = '';
   contactNo = '';
   country = '';
-  status = 'studying';
+  status = 'active';
+  showPassword = false;
+  showConfirmPassword = false;
 
   errorMessage = '';
+  successMessage = '';
   loading = false;
 
   constructor(private router: Router, private authService: AuthService) { }
@@ -40,7 +44,6 @@ export class StudentSignupComponent {
       return this.fail('Passwords do not match.');
     if (!this.contactNo.trim()) return this.fail('Contact number is required.');
     if (!this.country.trim()) return this.fail('Country is required.');
-    if (!this.status.trim()) return this.fail('Status is required.');
 
     return true;
   }
@@ -55,12 +58,10 @@ export class StudentSignupComponent {
     return re.test(email);
   }
 
-  onSignup() {
-    if (this.loading) return;
+  onSignup(f: NgForm) {
     if (!this.validateForm()) return;
 
     this.loading = true;
-    this.errorMessage = '';
 
     const payload = {
       fullName: this.fullName,
@@ -72,15 +73,21 @@ export class StudentSignupComponent {
       role: 'student',
     };
 
+    console.log('Student signup payload:', payload);
+
     this.authService.signup(payload, 'student').subscribe({
-      next: () => {
+      next: (res) => {
+        console.log('Signup successful:', res);
         this.loading = false;
-        this.router.navigate(['/login']);
+        this.successMessage = 'Registration successful! Welcome to EduVerse! 🚀';
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
       },
       error: (err) => {
+        console.error('Signup error:', err);
         this.loading = false;
-        this.errorMessage =
-          getApiErrorMessage(err, 'Signup failed. Please try again.');
+        this.errorMessage = err?.error?.detail?.[0]?.msg || 'Signup failed';
       },
     });
   }

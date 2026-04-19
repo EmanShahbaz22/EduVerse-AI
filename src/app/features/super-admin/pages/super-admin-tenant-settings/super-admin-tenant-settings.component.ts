@@ -4,11 +4,11 @@ import { HeaderComponent } from '../../../../shared/components/header/header.com
 import { TenantInfoFormComponent } from '../../components/tenant-info-form/tenant-info-form.component';
 import { SubscriptionDetailsComponent } from '../../components/subscription-details/subscription-details.component';
 import { AccountActionsComponent } from '../../components/account-actions/account-actions.component';
-import { TenantService } from '../../services/tenant.service';
+import { TenantService, TenantResponse } from '../../services/tenant.service';
 import { Subscription } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { ActivatedRoute } from '@angular/router';
+import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
+import { SubscriptionPlansService, SubscriptionPlan } from '../../services/subscription-plans.service';
 
 @Component({
   selector: 'app-super-admin-tenant-settings',
@@ -18,46 +18,29 @@ import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
   styleUrl: './super-admin-tenant-settings.component.css'
 })
 export class SuperAdminTenantSettingsComponent implements OnInit, OnDestroy {
-  tenant: any = null;
-  subscriptionDetails: any = null;
-  loadingTenant = false;
+  tenant: TenantResponse | null = null;
+  availablePlans: SubscriptionPlan[] = [];
 
   private sub!: Subscription;
 
   constructor(
     private tenantService: TenantService,
+    private plansService: SubscriptionPlansService,
     private route: ActivatedRoute,
-    private router: Router,
-    private toastService: ToastService
+    private confirmDialogService: ConfirmDialogService
   ) { }
 
   ngOnInit(): void {
     const tenantId = this.route.snapshot.paramMap.get('id');
     if (tenantId) {
-      this.loadingTenant = true;
-      this.tenantService.getTenantById(tenantId).subscribe({
-        next: (tenant) => {
-          this.loadingTenant = false;
-          this.tenantService.setSelectedTenant(tenant);
-        },
-        error: (err) => {
-          this.loadingTenant = false;
-          this.toastService.error(
-            getApiErrorMessage(err, 'Unable to load tenant details.'),
-          );
-          this.router.navigate(['/super-admin/tenants']);
-        },
+      this.tenantService.getTenantByIdApi(tenantId).subscribe((t) => {
+        this.tenant = t;
       });
-    } else {
-      this.toastService.error('Invalid tenant URL. Please select a tenant again.');
-      this.router.navigate(['/super-admin/tenants']);
     }
 
-    this.sub = this.tenantService.getSelectedTenant().subscribe((tenant) => {
-      if (tenant) {
-        this.tenant = tenant;
-        this.subscriptionDetails = tenant.subscriptionDetails ?? tenant.subscription;
-      }
+    // Load available plans for the Assignment Dropdown CTA
+    this.plansService.getAllPlans('active').subscribe(plans => {
+      this.availablePlans = plans;
     });
   }
 
@@ -67,86 +50,91 @@ export class SuperAdminTenantSettingsComponent implements OnInit, OnDestroy {
     }
   }
 
-  private toIsoDateOnly(value: Date): string {
-    return value.toISOString().slice(0, 10);
-  }
-
-  private addDays(base: Date, days: number): Date {
-    const next = new Date(base);
-    next.setDate(next.getDate() + days);
-    return next;
-  }
-
-  onSaveTenant(payload: any) {
-    this.tenantService.updateTenant(payload).subscribe({
-      next: () => this.toastService.success('Tenant information updated successfully.'),
-      error: (err) =>
-        this.toastService.error(getApiErrorMessage(err, 'Failed to update tenant information.')),
-    });
-  }
-
-  onUpgrade() {
+  async onSaveTenant(payload: any) {
     if (!this.tenant) return;
-    const now = new Date();
-    this.tenantService
-      .updateTenant({
-        ...this.tenant,
-        status: 'active',
-        subscriptionCategory: this.tenant.subscriptionCategory || 'pro',
-        subscriptionPlan: this.tenant.subscriptionPlan || 'Pro',
-        subscriptionBillingCycle: this.tenant.subscriptionBillingCycle || 'monthly',
-        subscriptionStartDate:
-          this.tenant.subscriptionStartDate || this.toIsoDateOnly(now),
-        subscriptionExpiryDate:
-          this.tenant.subscriptionExpiryDate || this.toIsoDateOnly(this.addDays(now, 30)),
-      })
-      .subscribe({
-        next: () => this.toastService.success('Tenant upgraded successfully.'),
-        error: (err) =>
-          this.toastService.error(getApiErrorMessage(err, 'Failed to upgrade tenant.')),
-      });
-  }
-
-  onRenew() {
-    if (!this.tenant) return;
-    const now = new Date();
-    const currentExpiry = this.tenant.subscriptionExpiryDate
-      ? new Date(this.tenant.subscriptionExpiryDate)
-      : now;
-    const base = currentExpiry > now ? currentExpiry : now;
-    this.tenantService
-      .updateTenant({
-        ...this.tenant,
-        status: 'active',
-        subscriptionExpiryDate: this.toIsoDateOnly(this.addDays(base, 30)),
-      })
-      .subscribe({
-        next: () => this.toastService.success('Subscription renewed successfully.'),
-        error: (err) =>
-          this.toastService.error(getApiErrorMessage(err, 'Failed to renew subscription.')),
-      });
-  }
-
-  onDeactivate() {
-    if (!this.tenant) return;
-    this.tenantService
-      .updateTenant({ ...this.tenant, status: 'inactive' })
-      .subscribe({
-        next: () => this.toastService.success('Tenant deactivated successfully.'),
-        error: (err) =>
-          this.toastService.error(getApiErrorMessage(err, 'Failed to deactivate tenant.')),
-      });
-  }
-
-  onDelete() {
-    if (!this.tenant) return;
-    this.tenantService.deleteTenant(this.tenant.id).subscribe({
-      next: () => {
-        this.toastService.success('Tenant deleted successfully.');
-        this.router.navigate(['/super-admin/tenants']);
+    this.tenantService.updateTenantApi(this.tenant.id, payload).subscribe({
+      next: async (res) => {
+        this.tenant = res;
+        await this.confirmDialogService.alert('Tenant information updated!');
       },
-      error: (err) =>
-        this.toastService.error(getApiErrorMessage(err, 'Failed to delete tenant.')),
+      error: (err) => console.error(err)
     });
+  }
+
+  async onAssignPlan(planId: string) {
+    if (!this.tenant) return;
+    const selectedPlan = this.availablePlans.find(p => p.id === planId);
+    if (!selectedPlan) return;
+
+    const isConfirmed = await this.confirmDialogService.confirm('Assign Plan', `Upgrade this tenant to the ${selectedPlan.name} plan?`);
+    if (isConfirmed) {
+      this.tenantService.updateTenantApi(this.tenant.id, {
+        subscriptionId: selectedPlan.id,
+        subscriptionPlan: selectedPlan.name,
+        subscriptionCategory: selectedPlan.category,
+        subscriptionBillingCycle: selectedPlan.billingCycle,
+        subscriptionPriceMonthly: selectedPlan.pricePerMonth
+      }).subscribe({
+        next: async (res) => {
+          this.tenant = res;
+          await this.confirmDialogService.alert(`Tenant successfully upgraded to ${selectedPlan.name}!`);
+        },
+        error: (err) => console.error("Error assigning plan", err)
+      });
+    }
+  }
+
+  async onRenew() {
+    await this.confirmDialogService.alert('Renewal cycle logged.');
+  }
+
+  async onDeactivate() {
+    if (!this.tenant) return;
+    const isConfirmed = await this.confirmDialogService.confirm('Deactivate Tenant', `Deactivate tenant "${this.tenant.tenantName}"?`);
+    if (isConfirmed) {
+      this.tenantService.updateTenantApi(this.tenant.id, { status: 'inactive' }).subscribe({
+        next: async (res) => {
+          this.tenant = res;
+          await this.confirmDialogService.alert('Tenant deactivated.');
+        }
+      });
+    }
+  }
+
+  async onActivate() {
+    if (!this.tenant) return;
+    this.tenantService.updateTenantApi(this.tenant.id, { status: 'active' }).subscribe({
+      next: async (res) => {
+        this.tenant = res;
+        await this.confirmDialogService.alert('Tenant activated successfully.');
+      }
+    });
+  }
+
+  async onGrantGracePeriod() {
+    if (!this.tenant) return;
+    const isConfirmed = await this.confirmDialogService.confirm('Grant Grace Period', 'Grant a 7-day manual grace period to this tenant?');
+    if (isConfirmed) {
+      const now = new Date();
+      now.setDate(now.getDate() + 7);
+      this.tenantService.updateTenantApi(this.tenant.id, { gracePeriodUntil: now.toISOString() }).subscribe({
+        next: async (res) => {
+          this.tenant = res;
+          await this.confirmDialogService.alert('7-day grace period granted.');
+        }
+      });
+    }
+  }
+
+  async onDelete() {
+    if (!this.tenant) return;
+    const isConfirmed = await this.confirmDialogService.confirmDelete(this.tenant.tenantName);
+    if (isConfirmed) {
+      this.tenantService.deleteTenantApi(this.tenant.id).subscribe({
+        next: async () => {
+          await this.confirmDialogService.alert('Tenant deleted.');
+        }
+      });
+    }
   }
 }

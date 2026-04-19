@@ -1,94 +1,69 @@
-<div class="min-h-screen bg-gray-50">
-  <app-header pageTitle="Super Admin Settings"></app-header>
+<div class="flex flex-col h-full animate-fade-in">
+  <app-header pageTitle="Settings"></app-header>
+  <main class="p-6">
+    <div class="max-w-6xl mx-auto space-y-6">
 
-  <main class="p-6 space-y-6">
-    <section class="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 class="text-xl font-semibold text-gray-900">Control Center</h2>
-      <p class="text-sm text-gray-500 mt-1">
-        Manage platform-level settings, tenant subscriptions, and plan catalog definitions.
-      </p>
+      <!-- Profile Information -->
+      <div *ngIf="!loading" class="bg-white rounded-[14px] shadow-sm border border-[#e2e8f0] p-6">
+        <h3 class="text-lg font-bold text-[#181F39] mb-6 flex items-center">
+          <i class="fa-solid fa-user-gear text-[#23A997] mr-2"></i> Profile Information
+        </h3>
 
-      <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a
-          routerLink="/super-admin/subscription-plans"
-          class="block rounded-lg border border-blue-200 bg-blue-50 p-4 hover:bg-blue-100 transition-colors"
-        >
-          <div class="font-semibold text-blue-900">Subscription Plans</div>
-          <p class="text-xs text-blue-700 mt-1">
-            Create and update reusable plan categories and limits.
-          </p>
-        </a>
+        <form [formGroup]="profileForm" (ngSubmit)="onSave()" class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Full Name -->
+            <div class="space-y-1.5">
+              <label class="text-sm font-semibold text-[#181F39]">Full Name</label>
+              <input formControlName="fullName" type="text" placeholder="John Doe"
+                class="w-full h-[46px] px-4 border border-[#cbd5e1] rounded-xl focus:outline-none focus:ring-4 focus:ring-[#23A997]/20 focus:border-[#23A997] transition-all placeholder-gray-400">
+              <div *ngIf="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched" class="text-red-500 text-xs mt-1">
+                Full name is required (min 2 characters).
+              </div>
+            </div>
 
-        <a
-          routerLink="/super-admin/tenants"
-          class="block rounded-lg border border-purple-200 bg-purple-50 p-4 hover:bg-purple-100 transition-colors"
-        >
-          <div class="font-semibold text-purple-900">Tenant Management</div>
-          <p class="text-xs text-purple-700 mt-1">
-            Assign plans and manage tenant lifecycle.
-          </p>
-        </a>
+            <!-- Email (Disabled) -->
+            <div class="space-y-1.5">
+              <label class="text-sm font-semibold text-[#181F39]">Email (Read-Only)</label>
+              <input formControlName="email" type="email"
+                class="w-full h-[46px] px-4 border border-[#e2e8f0] rounded-xl bg-slate-50 text-gray-400 cursor-not-allowed">
+            </div>
 
-        <a
-          routerLink="/super-admin/dashboard"
-          class="block rounded-lg border border-green-200 bg-green-50 p-4 hover:bg-green-100 transition-colors"
-        >
-          <div class="font-semibold text-green-900">Platform Dashboard</div>
-          <p class="text-xs text-green-700 mt-1">
-            Track growth, active tenants, and revenue.
-          </p>
-        </a>
+            <!-- Contact Number -->
+            <div class="space-y-1.5">
+              <label class="text-sm font-semibold text-[#181F39]">Contact Number</label>
+              <app-phone-input formControlName="contactNo" [country]="profileForm.get('country')?.value" placeholder="Enter phone number"></app-phone-input>
+            </div>
+
+            <!-- Country -->
+            <div class="space-y-1.5">
+              <label class="text-sm font-semibold text-[#181F39]">Country</label>
+              <app-country-select
+                formControlName="country"
+                placeholder="Select country"
+              ></app-country-select>
+            </div>
+          </div>
+
+          <div class="flex justify-end pt-4 border-t border-[#e2e8f0]">
+            <button type="submit" [disabled]="profileForm.invalid"
+              class="bg-[#23A997] hover:bg-[#1e9585] text-white font-bold h-[46px] px-8 rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:ring-4 focus:ring-[#23A997]/20">
+              Save Changes
+            </button>
+          </div>
+        </form>
       </div>
-    </section>
 
-    <section class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Settings Snapshot</h3>
-        <button
-          type="button"
-          (click)="loadOverview(); loadPlanSummary()"
-          class="text-sm border border-slate-300 rounded-md px-3 py-1.5 hover:bg-slate-50"
-        >
-          {{ loadingOverview ? 'Refreshing...' : 'Refresh' }}
-        </button>
+      <!-- Change Password -->
+      <div *ngIf="!loading">
+        <app-change-password [isSuperAdmin]="true"></app-change-password>
       </div>
 
-      <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-500">Active Plan Templates</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">
-            {{ loadingPlans ? '...' : activePlans }}
-          </p>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-500">Inactive Plan Templates</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">
-            {{ loadingPlans ? '...' : inactivePlans }}
-          </p>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-500">Managed Tenants</p>
-          <p class="text-2xl font-bold text-gray-900 mt-1">
-            {{ overview.totalTenants }}
-          </p>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 p-4">
-          <p class="text-xs text-gray-500">Last Sync</p>
-          <p class="text-base font-semibold text-gray-900 mt-2">
-            {{ lastSyncedAt ? (lastSyncedAt | date: 'medium') : 'Not synced yet' }}
-          </p>
-        </div>
+      <!-- Skeleton loader -->
+      <div *ngIf="loading" class="animate-pulse space-y-6">
+        <div class="h-64 bg-gray-200 rounded-[14px] w-full"></div>
+        <div class="h-48 bg-gray-200 rounded-[14px] w-full"></div>
       </div>
-    </section>
 
-    <section class="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 class="text-lg font-semibold text-gray-900">Access Context</h3>
-      <p class="text-sm text-gray-600 mt-2">
-        Logged in as <strong>{{ profileName }}</strong>. Use this page for platform-wide controls.
-      </p>
-    </section>
+    </div>
   </main>
 </div>

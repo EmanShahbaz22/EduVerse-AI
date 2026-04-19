@@ -17,23 +17,32 @@ export interface CourseProgress {
 export class StudentProgressService {
     constructor(private http: HttpClient) { }
 
-    getCourseProgress(courseId: string, tenantId: string): Observable<CourseProgress> {
-        const params = new HttpParams().set('tenantId', tenantId);
+    getCourseProgress(courseId: string, tenantId?: string): Observable<CourseProgress> {
+        let params = new HttpParams();
+        if (tenantId) {
+            params = params.set('tenantId', tenantId);
+        }
         return this.http.get<CourseProgress>(`${ENDPOINTS.COURSES.BASE}/progress/${courseId}`, {
             params
         });
     }
 
-    markLessonComplete(courseId: string, lessonId: string, tenantId: string): Observable<CourseProgress> {
-        const params = new HttpParams().set('tenantId', tenantId);
+    markLessonComplete(courseId: string, lessonId: string, tenantId?: string): Observable<CourseProgress> {
+        let params = new HttpParams();
+        if (tenantId) {
+            params = params.set('tenantId', tenantId);
+        }
         return this.http.post<CourseProgress>(`${ENDPOINTS.COURSES.BASE}/progress/mark-complete`,
             { courseId, lessonId },
             { params }
         );
     }
 
-    getAllProgress(tenantId: string): Observable<CourseProgress[]> {
-        const params = new HttpParams().set('tenantId', tenantId);
+    getAllProgress(tenantId?: string): Observable<CourseProgress[]> {
+        let params = new HttpParams();
+        if (tenantId) {
+            params = params.set('tenantId', tenantId);
+        }
         return this.http.get<CourseProgress[]>(`${ENDPOINTS.COURSES.BASE}/progress/summary/all`, {
             params
         });

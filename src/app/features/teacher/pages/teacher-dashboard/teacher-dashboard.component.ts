@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { StatCardComponent } from '../../../../shared/components/stat-card/stat-card.component';
@@ -10,8 +11,6 @@ import {
 import { StudentEnrollmentChartComponent } from '../../components/student-enrollment-chart/student-enrollment-chart.component';
 import { CourseService, BackendCourse } from '../../../../core/services/course.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -37,28 +36,7 @@ export class TeacherDashboardComponent implements OnInit {
     private router: Router,
     private courseService: CourseService,
     private authService: AuthService,
-    private toastService: ToastService,
   ) { }
-
-  quickLinks = [
-    {
-      title: 'Create Quizzes',
-      icon: 'fa fa-edit',
-      action: () => this.onGenerateQuiz(),
-    },
-    {
-      title: 'Create Assignment ',
-      icon: 'fa-solid fa-file-circle-plus',
-      action: () => this.onGenerateAssignment(),
-    },
-  ];
-
-  onGenerateAssignment() {
-    this.router.navigate(['/teacher/assignments']);
-  }
-  onGenerateQuiz() {
-    this.router.navigate(['/teacher/quizzes']);
-  }
 
   statsCards: StatCard[] = [
     {
@@ -75,20 +53,6 @@ export class TeacherDashboardComponent implements OnInit {
       iconBgClass: 'bg-green-100',
       iconColorClass: 'text-green-600',
     },
-    {
-      title: 'Assignments',
-      value: '0',
-      icon: 'fas fa-file-alt',
-      iconBgClass: 'bg-orange-100',
-      iconColorClass: 'text-orange-600',
-    },
-    {
-      title: 'Awaiting Grading',
-      value: '0',
-      icon: 'fas fa-tasks',
-      iconBgClass: 'bg-red-100',
-      iconColorClass: 'text-red-600',
-    },
   ];
 
   courseColumns: TableColumn[] = [
@@ -100,6 +64,9 @@ export class TeacherDashboardComponent implements OnInit {
 
   courses: BackendCourse[] = []; // UPDATED: Properly typed
   loading: boolean = true;
+
+  chartSubjects: string[] = ['Math101', 'HistoryT201', 'CS101', 'English'];
+  chartEnrollments: number[] = [25, 22, 20, 30];
 
   ngOnInit() {
     this.loadDashboardData();
@@ -117,29 +84,34 @@ export class TeacherDashboardComponent implements OnInit {
       // Use teacherId if available
       const teacherId = user.teacherId || user.id;
 
+      // Calculate chart arrays initially empty
+      this.chartSubjects = [];
+      this.chartEnrollments = [];
+
       this.courseService.getCourses(tenantId, { teacher_id: teacherId }).subscribe({
         next: (data: BackendCourse[]) => {
           this.courses = data;
           this.statsCards[0].value = data.length.toString();
 
-          // Calculate total students across all courses
           const totalStudents = data.reduce((acc: number, c: BackendCourse) => acc + (c.enrolledStudents || 0), 0);
           this.statsCards[1].value = totalStudents.toString();
 
+          if (data.length > 0) {
+            this.chartSubjects = data.map(c => c.title || c.courseCode || 'Unknown Course');
+            this.chartEnrollments = data.map(c => c.enrolledStudents || 0);
+          }
+
           this.loading = false;
         },
-        error: (err: { message: string }) => {
+        error: (err: HttpErrorResponse | Error) => {
           console.error('Error loading teacher dashboard data', err);
-          this.toastService.error(
-            getApiErrorMessage(err, 'Unable to load dashboard data right now.')
-          );
           this.loading = false;
         }
       });
     }
   }
 
-  onViewCourse(row: any) {
+  onViewCourse(row: BackendCourse) {
 
   }
 

@@ -1,23 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { ButtonComponent } from '../button/button.component';
+import { RouterModule } from '@angular/router';
 import {
   Component,
   EventEmitter,
   Input,
   Output,
   OnChanges,
+  OnDestroy,
+  OnInit,
   SimpleChanges,
   HostListener,
-  OnInit,
-  OnDestroy,
 } from '@angular/core';
-import { AuthService } from '../../../features/auth/services/auth.service';
-import { ToastService } from '../../services/toast.service';
-import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { AuthService } from '../../../features/auth/services/auth.service';
+import { TenantBranding, TenantBrandingService } from '../../services/tenant-branding.service';
 
 interface MenuItem {
   icon: string;
@@ -29,44 +26,33 @@ interface MenuItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonComponent, FormsModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.css'],
 })
 export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
-  @Input() role: 'admin' | 'teacher' | 'super_admin' | 'super-admin' | 'student' = 'admin';
+  @Input() role: 'admin' | 'teacher' | 'super-admin' | 'student' = 'admin';
   @Output() toggleSidebar = new EventEmitter<boolean>();
-  private destroy$ = new Subject<void>();
 
+  private destroy$ = new Subject<void>();
   isOpen = true;
   isMobileSidebarVisible = false;
   isMobile = false;
   menuItems: MenuItem[] = [];
-  teacherTenants: Array<{ tenantId: string; tenantName: string; teacherId: string; active: boolean }> = [];
-  selectedTenantId = '';
-  switchingTenant = false;
+  tenantBranding: TenantBranding | null = null;
 
   constructor(
-    private router: Router,
     private authService: AuthService,
-    private toastService: ToastService,
-  ) { }
+    private tenantBrandingService: TenantBrandingService,
+  ) {}
 
   ngOnInit() {
     this.updateScreenSize();
-    this.authService.currentUser$
+    this.setMenuItems();
+    this.tenantBrandingService.branding$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((user) => {
-        this.selectedTenantId = user?.tenantId || '';
+      .subscribe((branding) => {
+        this.tenantBranding = branding;
       });
-    if (this.role === 'teacher') {
-      this.loadTeacherTenants();
-    }
-  }
-
-  ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   @HostListener('window:resize')
@@ -80,28 +66,26 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['role']) {
-      this.setMenuItems();
-      if (this.role === 'teacher') {
-        this.loadTeacherTenants();
-      } else {
-        this.teacherTenants = [];
-      }
-    }
+    if (changes['role']) this.setMenuItems();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private setMenuItems() {
     if (this.role === 'admin') {
       this.menuItems = [
         {
-          icon: 'fa-solid fa-chart-pie',
+          icon: 'fa-solid fa-table-cells-large',
           label: 'Dashboard',
           path: 'dashboard',
         },
-        { icon: 'fa-solid fa-users', label: 'Teachers', path: 'teachers' },
-        { icon: 'fa-solid fa-users', label: 'Students', path: 'students' },
-        { icon: 'fa-solid fa-book', label: 'Courses', path: 'courses' },
-        { icon: 'fa-solid fa-cog', label: 'Settings', path: 'settings' },
+        { icon: 'fa-solid fa-graduation-cap', label: 'Teachers', path: 'teachers' },
+        { icon: 'fa-solid fa-user-group', label: 'Students', path: 'students' },
+        { icon: 'fa-solid fa-book-open', label: 'Courses', path: 'courses' },
+        { icon: 'fa-solid fa-gear', label: 'Settings', path: 'settings' },
       ];
     } else if (this.role === 'teacher') {
       this.menuItems = [
@@ -111,8 +95,6 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
           path: 'dashboard',
         },
         { icon: 'fa-solid fa-book', label: 'My Courses', path: 'courses' },
-        { icon: 'fa-solid fa-question', label: 'Quizzes', path: 'quizzes' },
-        { icon: 'fa-solid fa-file', label: 'Assignments', path: 'assignments' },
         {
           icon: 'fa-solid fa-user',
           label: 'Track Student',
@@ -133,17 +115,10 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
           label: 'Explore Courses',
           path: 'explore-courses',
         },
-        { icon: 'fa-solid fa-question', label: 'Quizzes', path: 'quizzes' },
-        { icon: 'fa-solid fa-file', label: 'Assignments', path: 'assignments' },
-        {
-          icon: 'fa-solid fa-robot',
-          label: 'Ai Assistant',
-          path: 'ai-assistant',
-        },
         { icon: 'fa-solid fa-user', label: 'Leaderboard', path: 'leaderboard' },
         { icon: 'fa-solid fa-cog', label: 'Settings', path: 'settings' },
       ];
-    } else if (this.role === 'super-admin' || this.role === 'super_admin') {
+    } else if (this.role === 'super-admin') {
       this.menuItems = [
         {
           icon: 'fa-solid fa-chart-pie',
@@ -151,11 +126,7 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
           path: 'dashboard',
         },
         { icon: 'fa-solid fa-building', label: 'Tenants', path: 'tenants' },
-        {
-          icon: 'fa-solid fa-layer-group',
-          label: 'Subscription Plans',
-          path: 'subscription-plans',
-        },
+        { icon: 'fa-solid fa-credit-card', label: 'Subscriptions', path: 'subscriptions' },
         { icon: 'fa-solid fa-cog', label: 'Settings', path: 'settings' },
       ];
     } else {
@@ -183,44 +154,12 @@ export class SidebarComponent implements OnChanges, OnInit, OnDestroy {
     this.authService.logout();
   }
 
-  loadTeacherTenants() {
-    this.authService.getTeacherTenants().subscribe({
-      next: (res) => {
-        this.teacherTenants = res.tenants || [];
-        this.selectedTenantId =
-          res.activeTenantId ||
-          this.teacherTenants.find((x) => x.active)?.tenantId ||
-          '';
-      },
-      error: () => {
-        this.teacherTenants = [];
-      },
-    });
-  }
-
-  onTenantSwitch() {
-    if (!this.selectedTenantId || this.switchingTenant) return;
-    this.switchingTenant = true;
-    this.authService.switchTeacherTenant(this.selectedTenantId).subscribe({
-      next: (res) => {
-        this.switchingTenant = false;
-        this.toastService.success(`Switched to ${res.tenantName}`);
-        this.loadTeacherTenants();
-        this.router.navigateByUrl('/teacher/dashboard').then(() => {
-          window.location.reload();
-        });
-      },
-      error: (err) => {
-        this.switchingTenant = false;
-        this.toastService.error(
-          getApiErrorMessage(err, 'Failed to switch tenant context.'),
-        );
-      },
-    });
-  }
-
   toggleDesktopSidebar() {
     this.isOpen = !this.isOpen;
     this.toggleSidebar.emit(this.isOpen);
+  }
+
+  get displayBrandName(): string {
+    return this.tenantBranding?.tenantName?.trim() || 'EduVerse';
   }
 }

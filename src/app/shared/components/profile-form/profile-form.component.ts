@@ -9,6 +9,8 @@ import {
 import { finalize, Observable } from 'rxjs';
 
 import { ButtonComponent } from '../button/button.component';
+import { CountrySelectComponent } from '../country-select/country-select.component';
+import { PhoneInputComponent } from '../phone-input/phone-input.component';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../../features/auth/services/auth.service';
 
@@ -26,13 +28,15 @@ import {
 } from '../../models/teacher-profile.models';
 
 import { StudentProfileService } from '../../services/student-profile-service';
-import { AdminService } from '../../services/admin-profile.service';
+import { AdminProfileService } from '../../services/admin-profile.service';
 import { TeacherProfileService } from '../../services/teacher-profile.service';
+
+type ProfileResponse = StudentProfile | AdminProfile | TeacherResponse;
 
 @Component({
   selector: 'app-profile-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent],
+  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, PhoneInputComponent, CountrySelectComponent],
   templateUrl: './profile-form.component.html',
   styleUrls: ['./profile-form.component.css'],
 })
@@ -45,25 +49,17 @@ export class ProfileFormComponent implements OnInit {
 
   role: 'student' | 'admin' | 'teacher' | null = null;
 
-  /** Maps backend country labels to select values */
-  countryMap: Record<string, string> = {
-    Pakistan: 'pk',
-    Germany: 'ger',
-    'United States': 'us',
-    'United Kingdom': 'uk',
-    India: 'in',
-  };
-
   constructor(
     private fb: FormBuilder,
     private toastService: ToastService,
     private authService: AuthService,
     private studentService: StudentProfileService,
-    private adminService: AdminService,
+    private adminService: AdminProfileService,
     private teacherService: TeacherProfileService,
   ) {}
 
   ngOnInit(): void {
+    this.buildForm();
     this.role = this.authService.getRole() as 'student' | 'admin' | 'teacher';
 
     if (!this.role) {
@@ -71,14 +67,13 @@ export class ProfileFormComponent implements OnInit {
       return;
     }
 
-    this.buildForm();
     this.loadProfile();
   }
 
   private buildForm(): void {
     this.profileForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(3)]],
-      email: ['', [Validators.required, Validators.email]],
+      email: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
       phone: [''],
       country: [''],
     });
@@ -87,7 +82,7 @@ export class ProfileFormComponent implements OnInit {
   private loadProfile(): void {
     this.isLoading = true;
 
-    let service$: Observable<StudentProfile | AdminProfile | TeacherResponse>;
+    let service$: Observable<ProfileResponse>;
 
     switch (this.role) {
       case 'student':
@@ -105,19 +100,27 @@ export class ProfileFormComponent implements OnInit {
     }
 
     service$.pipe(finalize(() => (this.isLoading = false))).subscribe({
-      next: (profile: any) => {
+      next: (profile) => {
         this.profileForm.patchValue({
           fullName: profile.fullName ?? '',
           email: profile.email ?? '',
           phone: profile.contactNo ?? '',
-          country: this.countryMap[profile.country] ?? '',
+          country: profile.country || '',
         });
 
         this.profilePreview = profile.profileImageURL ?? null;
+        this.syncCurrentUserProfile(profile);
       },
       error: () => {
         this.toastService.error('Failed to load profile');
       },
+    });
+  }
+
+  private syncCurrentUserProfile(profile: Pick<ProfileResponse, 'fullName' | 'profileImageURL'>): void {
+    this.authService.updateCurrentUser({
+      fullName: profile.fullName ?? undefined,
+      profileImageURL: profile.profileImageURL ?? undefined,
     });
   }
 
@@ -151,7 +154,6 @@ export class ProfileFormComponent implements OnInit {
     if (this.role === 'student') {
       const payload: StudentUpdatePayload = {
         fullName: this.profileForm.value.fullName,
-        email: this.profileForm.value.email,
         contactNo: this.profileForm.value.phone,
         country: this.profileForm.value.country,
         profileImageURL: this.profilePreview,
@@ -161,7 +163,11 @@ export class ProfileFormComponent implements OnInit {
         .updateMyProfile(payload)
         .pipe(finalize(() => (this.isLoading = false)))
         .subscribe({
-          next: () => this.toastService.success('Profile updated successfully'),
+          next: (profile) => {
+            this.profilePreview = profile.profileImageURL ?? this.profilePreview;
+            this.syncCurrentUserProfile(profile);
+            this.toastService.success('Profile updated successfully');
+          },
           error: () => this.toastService.error('Update failed'),
         });
     }
@@ -178,7 +184,11 @@ export class ProfileFormComponent implements OnInit {
         .updateMyProfile(payload)
         .pipe(finalize(() => (this.isLoading = false)))
         .subscribe({
-          next: () => this.toastService.success('Profile updated successfully'),
+          next: (profile) => {
+            this.profilePreview = profile.profileImageURL ?? this.profilePreview;
+            this.syncCurrentUserProfile(profile);
+            this.toastService.success('Profile updated successfully');
+          },
           error: () => this.toastService.error('Update failed'),
         });
     }
@@ -186,7 +196,6 @@ export class ProfileFormComponent implements OnInit {
     if (this.role === 'teacher') {
       const payload: TeacherUpdatePayload = {
         fullName: this.profileForm.value.fullName,
-        email: this.profileForm.value.email,
         contactNo: this.profileForm.value.phone,
         country: this.profileForm.value.country,
         profileImageURL: this.profilePreview ?? undefined,
@@ -196,7 +205,11 @@ export class ProfileFormComponent implements OnInit {
         .updateMyProfile(payload)
         .pipe(finalize(() => (this.isLoading = false)))
         .subscribe({
-          next: () => this.toastService.success('Profile updated successfully'),
+          next: (profile) => {
+            this.profilePreview = profile.profileImageURL ?? this.profilePreview;
+            this.syncCurrentUserProfile(profile);
+            this.toastService.success('Profile updated successfully');
+          },
           error: () => this.toastService.error('Update failed'),
         });
     }

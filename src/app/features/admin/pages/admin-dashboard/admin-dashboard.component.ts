@@ -6,9 +6,10 @@ import { StatCardComponent } from '../../../../shared/components/stat-card/stat-
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
 import { AdminService, AdminTeacher, AdminStudent } from '../../../../core/services/admin.service';
+import { BackendCourse } from '../../../../core/services/course.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { Router } from '@angular/router';
+import { SubscriptionExpiryDialogComponent } from '../../../../shared/components/subscription-expiry-dialog/subscription-expiry-dialog.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -17,7 +18,8 @@ import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
     CommonModule,
     HeaderComponent,
     StatCardComponent,
-    DataTableComponent
+    DataTableComponent,
+    SubscriptionExpiryDialogComponent
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.css',
@@ -31,84 +33,78 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       title: 'Total Students',
       value: '0',
       icon: 'fas fa-users',
-      iconBgClass: 'bg-blue-100',
-      iconColorClass: 'text-blue-600',
+      iconBgClass: 'bg-[#23A997]/10',
+      iconColorClass: 'text-[#23A997]',
     },
     {
       title: 'Active Courses',
       value: '0',
       icon: 'fas fa-graduation-cap',
-      iconBgClass: 'bg-green-100',
-      iconColorClass: 'text-green-600',
+      iconBgClass: 'bg-[#23A997]/10',
+      iconColorClass: 'text-[#23A997]',
     },
     {
       title: 'Registered Courses',
       value: '0',
       icon: 'fas fa-book-open',
-      iconBgClass: 'bg-purple-100',
-      iconColorClass: 'text-purple-600',
+      iconBgClass: 'bg-[#23A997]/10',
+      iconColorClass: 'text-[#23A997]',
     },
     {
       title: 'Total Teachers',
       value: '0',
       icon: 'fas fa-chalkboard-teacher',
-      iconBgClass: 'bg-orange-100',
-      iconColorClass: 'text-orange-600',
+      iconBgClass: 'bg-[#23A997]/10',
+      iconColorClass: 'text-[#23A997]',
     },
   ];
 
   // teachers
   teacherColumns: TableColumn[] = [
-    { key: 'avatar', label: 'Teacher', type: 'avatar' },
-    { key: 'email', label: 'Email', type: 'text' },
-    { key: 'fullName', label: 'Full Name', type: 'text' },
+    { key: 'avatar', label: 'Teacher', type: 'avatar', width: '35%' },
+    { key: 'assignedCoursesCount', label: 'Courses', type: 'text', width: '25%' },
     {
       key: 'status',
       label: 'Status',
       type: 'badge',
-      badgeColors: {
-        Active: 'bg-green-100 text-green-800',
-        Inactive: 'bg-red-100 text-red-800',
-      },
+      width: '25%'
     },
+    { key: 'action', label: 'Action', type: 'action', width: '15%' }
   ];
 
-  teachers: any[] = [];
+  teachers: AdminTeacher[] = [];
 
   // students
   studentColumns: TableColumn[] = [
-    { key: 'avatar', label: 'Student', type: 'avatar' },
-    { key: 'fullName', label: 'Full Name', type: 'text' },
-    { key: 'email', label: 'Email', type: 'text' },
+    { key: 'avatar', label: 'Student', type: 'avatar', width: '35%' },
+    { key: 'country', label: 'Country', type: 'text', width: '25%' },
     {
       key: 'status',
       label: 'Status',
       type: 'badge',
-      badgeColors: {
-        Enrolled: 'bg-green-100 text-green-800',
-        Graduated: 'bg-blue-100 text-blue-800',
-        Dropped: 'bg-red-100 text-red-800',
-        Active: 'bg-green-100 text-green-800',
-      },
+      width: '25%'
     },
+    { key: 'action', label: 'Action', type: 'action', width: '15%' }
   ];
 
-  students: any[] = [];
+  students: AdminStudent[] = [];
 
   // courses
   courseColumns: TableColumn[] = [
-    { key: 'title', label: 'Course Title', type: 'text' },
-    { key: 'courseCode', label: 'Code', type: 'text' },
-    { key: 'status', label: 'Status', type: 'text' },
+    { key: 'title', label: 'Course Title', type: 'text', width: '35%' },
+    { key: 'instructorName', label: 'Instructor', type: 'text', width: '25%' },
+    { key: 'status', label: 'Status', type: 'badge', width: '25%' },
+    { key: 'action', label: 'Action', type: 'action', width: '15%' }
   ];
 
-  courses: any[] = [];
+  courses: BackendCourse[] = [];
   loading: boolean = true;
+  isSubscriptionExpired: boolean = false;
 
   constructor(
     private adminService: AdminService, // UPDATED: Injected AdminService
     private authService: AuthService,      // UPDATED: Injected AuthService
-    private toastService: ToastService,
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -117,9 +113,21 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       .subscribe(user => {
         // Only load data if user is actually an admin and has a tenantId
         if (user && (user.role === 'admin' || user.role === 'super_admin') && user.tenantId) {
+          this.checkSubscriptionStatus();
           this.loadAdminData(user.tenantId);
         }
       });
+  }
+
+  private checkSubscriptionStatus() {
+    this.adminService.getBillingStatus().subscribe({
+      next: (status) => {
+        this.isSubscriptionExpired = !status.isActive;
+      },
+      error: (err) => {
+        console.error('Failed to check subscription status', err);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -128,6 +136,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   // UPDATED: Load all required data for admin dashboard
+  private allTeachers: AdminTeacher[] = [];
+
   loadAdminData(tenantId: string) {
     if (tenantId) {
       this.loading = true;
@@ -135,17 +145,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       // Parallel requests for better performance
       this.adminService.getTeachers().subscribe({
         next: (data: AdminTeacher[]) => {
-          this.teachers = data.slice(0, 5).map((t: AdminTeacher) => ({
+          this.allTeachers = data;
+          this.teachers = data.map((t: AdminTeacher) => ({
             ...t,
-            avatar: t.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'TR'
-          }));
+            avatar: t.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'TR',
+            assignedCoursesCount: t.assignedCourses?.length || 0
+          })).slice(0, 5);
           this.statsCards[3].value = data.length.toString();
-        },
-        error: (err) => {
-          this.toastService.error(
-            getApiErrorMessage(err, 'Unable to load teachers.'),
-          );
-        },
+          // Re-map courses if they loaded before teachers
+          this.mapCourseInstructors();
+        }
       });
 
       this.adminService.getStudents().subscribe({
@@ -155,30 +164,43 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
             avatar: s.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST'
           }));
           this.statsCards[0].value = data.length.toString();
-        },
-        error: (err) => {
-          this.toastService.error(
-            getApiErrorMessage(err, 'Unable to load students.'),
-          );
-        },
+        }
       });
 
       this.adminService.getCourses().subscribe({
-        next: (data: any[]) => {
-          this.courses = data.slice(0, 5);
+        next: (data: BackendCourse[]) => {
+          this.courses = data.map((c: BackendCourse) => ({
+            ...c,
+            instructorName: c.instructorName || 'TBD'
+          })).slice(0, 5);
           this.statsCards[1].value = data.length.toString();
           this.statsCards[2].value = data.length.toString();
+          this.mapCourseInstructors();
           this.loading = false;
         },
-        error: (err) => {
-          this.loading = false;
-          this.toastService.error(
-            getApiErrorMessage(err, 'Unable to load courses.'),
-          );
-        }
+        error: () => this.loading = false
       });
     }
   }
+
+  private mapCourseInstructors() {
+    if (this.courses.length && this.allTeachers.length) {
+      this.courses = this.courses.map(c => {
+        if (!c.instructorName && c.teacherId) {
+          const teacher = this.allTeachers.find(t => (t._id || t.id) === c.teacherId);
+          return { ...c, instructorName: teacher?.fullName || 'N/A' };
+        }
+        return c;
+      });
+    }
+  }
+
+  navigateToEntity(type: string, row: AdminTeacher | AdminStudent | BackendCourse) {
+    const id = row.id || row._id;
+    if (!id) return;
+    this.router.navigate([`/admin/${type}`], { queryParams: { highlight: id } });
+  }
+
 }
 
 interface StatCard {

@@ -1,19 +1,17 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { FiltersComponent } from '../../../../shared/components/filters/filters.component';
-import { AdminService } from '../../../../core/services/admin.service';
-import { AuthService } from '../../../auth/services/auth.service';
-import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { EntityModalComponent, FormField } from '../../../../shared/components/entity-modal/entity-modal.component';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { AdminService, AdminStudent } from '../../../../core/services/admin.service';
+import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
+import { FormField } from '../../../../shared/components/entity-modal/entity-modal.component';
 
 @Component({
   selector: 'app-students',
   standalone: true,
-  imports: [HeaderComponent, DataTableComponent, CommonModule, FiltersComponent, ButtonComponent, EntityModalComponent],
+  imports: [HeaderComponent, DataTableComponent, CommonModule, FiltersComponent],
   templateUrl: './students.component.html',
   styleUrl: './students.component.css'
 })
@@ -32,32 +30,26 @@ export class StudentsComponent implements OnInit {
       key: 'status',
       label: 'Status',
       type: 'badge',
-      badgeColors: {
-        Enrolled: 'bg-green-100 text-green-800',
-        active: 'bg-green-100 text-green-800',
-        Graduated: 'bg-blue-100 text-blue-800',
-        Dropped: 'bg-red-100 text-red-800',
-        Active: 'bg-green-100 text-green-800',
-      },
     },
   ];
 
-  students: any[] = [];
-  filteredStudents: any[] = [];
+  students: AdminStudent[] = [];
+  filteredStudents: AdminStudent[] = [];
   loading: boolean = true;
+  highlightedRowId: string | null = null;
 
   // Modal state
   isModalOpen = false;
   isEditMode = false;
   modalTitle = 'Add Student';
-  selectedStudent: any = null;
+  selectedStudent: AdminStudent | null = null;
 
   studentFields: FormField[] = [
     { name: 'fullName', label: 'Full Name', type: 'text', required: true, placeholder: 'Enter full name' },
     { name: 'email', label: 'Email', type: 'email', required: true, placeholder: 'Enter email address' },
     { name: 'password', label: 'Password', type: 'password', required: true, placeholder: 'Enter password (min 6 characters)' },
-    { name: 'country', label: 'Country', type: 'text', placeholder: 'Enter country' },
-    { name: 'contactNo', label: 'Contact Number', type: 'text', placeholder: 'Enter contact number' },
+    { name: 'contactNo', label: 'Contact Number', type: 'phone', placeholder: 'Enter contact number' },
+    { name: 'country', label: 'Country', type: 'country', placeholder: 'Select country' },
     {
       name: 'status', label: 'Status', type: 'select', options: [
         { value: 'active', label: 'Active' },
@@ -69,11 +61,16 @@ export class StudentsComponent implements OnInit {
 
   constructor(
     private adminService: AdminService,
-    private authService: AuthService,
-    private toastService: ToastService,
+    private confirmDialogService: ConfirmDialogService,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['highlight']) {
+        this.highlightedRowId = params['highlight'];
+      }
+    });
     this.loadStudents();
   }
 
@@ -91,9 +88,6 @@ export class StudentsComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading students', err);
-        this.toastService.error(
-          getApiErrorMessage(err, 'Unable to load students right now.'),
-        );
         this.loading = false;
       }
     });
@@ -106,24 +100,22 @@ export class StudentsComponent implements OnInit {
     this.isModalOpen = true;
   }
 
-  onEditStudent(student: any) {
+  onEditStudent(student: AdminStudent) {
     this.isEditMode = true;
     this.modalTitle = 'Edit Student';
     this.selectedStudent = student;
     this.isModalOpen = true;
   }
 
-  onDeleteStudent(student: any) {
-    if (confirm(`Are you sure you want to delete ${student.fullName}?`)) {
+  async onRemoveStudent(student: AdminStudent) {
+    const isConfirmed = await this.confirmDialogService.confirmDelete(student.fullName);
+    if (isConfirmed && student.id) {
       this.adminService.deleteStudent(student.id).subscribe({
         next: () => {
-          this.toastService.success('Student removed successfully.');
           this.loadStudents();
         },
-        error: (err) => {
-          this.toastService.error(
-            getApiErrorMessage(err, 'Failed to delete student.'),
-          );
+        error: async (err) => {
+          await this.confirmDialogService.alert(`Failed to delete student: ${err.error?.detail || 'Unknown error'}`, 'Error', 'danger');
         }
       });
     }
@@ -134,16 +126,9 @@ export class StudentsComponent implements OnInit {
     this.selectedStudent = null;
   }
 
-  onModalSubmit(formData: any) {
-    const tenantId = this.authService.getTenantId();
-    if (!tenantId) {
-      this.toastService.error('Your tenant context is missing. Please log in again.');
-      return;
-    }
-
-    const studentData = {
+  async onModalSubmit(formData: Partial<AdminStudent>) {
+    const studentData: Partial<AdminStudent> = {
       ...formData,
-      tenantId,
       role: 'student'
     };
 
@@ -151,33 +136,27 @@ export class StudentsComponent implements OnInit {
     if (this.isEditMode) {
       delete studentData.password;
       delete studentData.role;
-      delete studentData.tenantId;
     } else {
       // Default status for new students
       if (!studentData.status) studentData.status = 'active';
     }
 
+    if (this.isEditMode && (!this.selectedStudent || !this.selectedStudent.id)) {
+      await this.confirmDialogService.alert('Cannot update: Student ID missing', 'Error', 'danger');
+      return;
+    }
+
     const request = this.isEditMode
-      ? this.adminService.updateStudent(this.selectedStudent.id, studentData)
+      ? this.adminService.updateStudent(this.selectedStudent!.id!, studentData)
       : this.adminService.createStudent(studentData);
 
     request.subscribe({
       next: () => {
         this.onModalClose();
         this.loadStudents();
-        this.toastService.success(
-          this.isEditMode
-            ? 'Student updated successfully.'
-            : 'Student added successfully.',
-        );
       },
-      error: (err) => {
-        this.toastService.error(
-          getApiErrorMessage(
-            err,
-            `Failed to ${this.isEditMode ? 'update' : 'create'} student.`,
-          ),
-        );
+      error: async (err) => {
+        await this.confirmDialogService.alert(`Failed to ${this.isEditMode ? 'update' : 'create'} student: ${err.error?.detail || 'Unknown error'}`, 'Error', 'danger');
       }
     });
   }

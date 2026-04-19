@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { Router } from '@angular/router';
 
-interface Course {
+export interface ContinueCourse {
+  id: string;
   title: string;
   lesson: string;
   progress: number; // completion percentage (0–100)
@@ -15,21 +17,22 @@ interface Course {
   styleUrls: ['./continue-learning.component.css'],
 })
 export class ContinueLearningComponent {
-  courses: Course[] = [
-    {
-      title: 'Advanced Mathematics',
-      lesson: 'Lesson 4 of 10 • Algebraic Structures',
-      progress: 40,
-    },
-    {
-      title: 'Computer Networks',
-      lesson: 'Lesson 7 of 12 • IP Addressing',
-      progress: 60,
-    },
-    // {
-    //   title: 'History of Art',
-    //   lesson: 'Lesson 2 of 8 • Renaissance Art',
-    //   progress: 25,
-    // },
-  ];
+  @Input() courses: ContinueCourse[] = [];
+  @Input() hasEnrolledCourses: boolean = false;
+
+  constructor(private router: Router) {}
+
+  openCourse(courseId: string) {
+    this.router.navigate(['/student/learn', courseId]);
+  }
+
+  get emptyTitle(): string {
+    return this.hasEnrolledCourses ? 'You are all caught up' : 'No active courses yet';
+  }
+
+  get emptyDescription(): string {
+    return this.hasEnrolledCourses
+      ? 'You have completed your active courses. Explore something new whenever you are ready.'
+      : 'Enroll in a course to start building progress here.';
+  }
 }

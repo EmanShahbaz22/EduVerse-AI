@@ -1,123 +1,78 @@
-<section class="bg-white rounded-lg shadow-sm p-6">
+<section class="bg-white rounded-[14px] shadow-sm border border-[#e2e8f0] p-6">
     <div class="flex items-start justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-            <i class="fa-solid fa-building mr-2 text-blue-600"></i> Tenant Information
+        <h3 class="text-lg font-bold text-[#181F39] flex items-center">
+            <i class="fa-solid fa-building mr-2 text-[#23A997]"></i> Tenant Information
         </h3>
     </div>
 
-    <form (ngSubmit)="onSave()" [formGroup]="form" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="text-sm font-medium text-gray-600">Tenant Name</label>
-                <input formControlName="tenantName" class="mt-1 w-full border rounded-md px-3 py-2" />
-            </div>
-
-            <div>
-                <label class="text-sm font-medium text-gray-600">Admin Email</label>
-                <input formControlName="adminEmail" class="mt-1 w-full border rounded-md px-3 py-2 bg-gray-50" />
-            </div>
-        </div>
-
+    <form (ngSubmit)="onSave()" [formGroup]="form" class="space-y-5">
         <div>
-            <label class="text-sm font-medium text-gray-600">Contact Number</label>
-            <input formControlName="contactNumber" class="mt-1 w-full border rounded-md px-3 py-2" />
+            <label class="block text-[14px] font-medium text-[#181F39] mb-3">Tenant Logo</label>
+            <div class="flex items-center space-x-4">
+                <img
+                    [src]="logoPreview || 'assets/images/profile.png'"
+                    alt="Tenant Logo"
+                    class="h-16 w-16 rounded-full border object-cover"
+                />
+                <label
+                    class="cursor-pointer bg-[#23A997] text-white px-5 py-2.5 rounded-xl shadow-md shadow-[#23A997]/20 hover:bg-[#1f9686] text-[14px] font-medium transition-all"
+                >
+                    <i class="fas fa-upload mr-2"></i> Upload
+                    <input
+                        type="file"
+                        accept="image/*"
+                        (change)="onFileChange($event)"
+                        class="hidden"
+                    />
+                </label>
+            </div>
         </div>
 
-        <div>
-            <label class="text-sm font-medium text-gray-600">Address</label>
-            <textarea formControlName="address" rows="3" class="mt-1 w-full border rounded-md px-3 py-2"></textarea>
-        </div>
-
-        <div class="border rounded-md p-4 bg-gray-50">
-            <h4 class="font-semibold text-gray-800 mb-3">Subscription Configuration</h4>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Category</label>
-                    <select formControlName="subscriptionCategory" class="mt-1 w-full border rounded-md px-3 py-2">
-                        <option value="free">Free</option>
-                        <option value="trial">Trial</option>
-                        <option value="basic">Basic</option>
-                        <option value="pro">Pro</option>
-                        <option value="enterprise">Enterprise</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Plan Name</label>
-                    <input formControlName="subscriptionPlan" class="mt-1 w-full border rounded-md px-3 py-2" />
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Plan Template</label>
-                    <select
-                        formControlName="subscriptionPlanCode"
-                        class="mt-1 w-full border rounded-md px-3 py-2"
-                        [disabled]="loadingPlans"
-                        (change)="onPlanTemplateChange($event)"
-                    >
-                        <option value="">{{ loadingPlans ? 'Loading templates...' : 'Select template (optional)' }}</option>
-                        <option *ngFor="let plan of availablePlans" [value]="plan.code">
-                            {{ plan.name }} ({{ plan.code }})
-                        </option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Billing Cycle</label>
-                    <select formControlName="subscriptionBillingCycle" class="mt-1 w-full border rounded-md px-3 py-2">
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Price / Month</label>
-                    <input type="number" min="0" formControlName="subscriptionPriceMonthly"
-                        class="mt-1 w-full border rounded-md px-3 py-2" />
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Start Date</label>
-                    <input type="date" formControlName="subscriptionStartDate"
-                        class="mt-1 w-full border rounded-md px-3 py-2" />
-                </div>
-
-                <div>
-                    <label class="text-sm font-medium text-gray-600">Expiry Date</label>
-                    <input type="date" formControlName="subscriptionExpiryDate"
-                        class="mt-1 w-full border rounded-md px-3 py-2" />
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-[#181F39]">Tenant Name</label>
+                <input formControlName="tenantName" class="w-full h-[46px] px-4 border border-[#cbd5e1] rounded-xl focus:outline-none focus:ring-4 focus:ring-[#23A997]/20 focus:border-[#23A997] transition-all" />
             </div>
 
-            <div class="mt-3">
-                <label class="text-sm font-medium text-gray-600">Notes</label>
-                <textarea formControlName="subscriptionNotes" rows="2"
-                    class="mt-1 w-full border rounded-md px-3 py-2"></textarea>
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-[#181F39]">Admin Email</label>
+                <input formControlName="adminEmail" class="w-full h-[46px] px-4 border border-[#e2e8f0] rounded-xl bg-slate-50 text-gray-400 cursor-not-allowed" />
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-[#181F39]">Contact Number</label>
+                <app-phone-input formControlName="contactNumber" [country]="form.get('address')?.value" placeholder="Enter phone number"></app-phone-input>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-[#181F39]">Country</label>
+                <app-country-select
+                    formControlName="address"
+                    placeholder="Select country"
+                ></app-country-select>
             </div>
         </div>
 
         <!-- Change password accordion -->
-        <div class="border-t pt-3">
-            <app-button 
+        <div class="border-t border-[#e2e8f0] pt-3">
+            <app-button
                 (buttonClick)="toggleChangePassword()"
-                customColor="text-sm text-gray-700 hover:text-gray-900 flex items-center space-x-2"
+                customColor="text-sm text-[#475569] hover:text-[#181F39] flex items-center space-x-2"
             >
                 <span>Change Password</span>
                 <i class="fas" [ngClass]="showChangePassword ? 'fa-chevron-up' : 'fa-chevron-down' "></i>
             </app-button>
 
             <div *ngIf="showChangePassword" class="mt-4">
-                <!-- using ChangePasswordComponent - it manages its own form and submission -->
                 <app-change-password [isSuperAdmin]="true" (ngSubmit)="onPasswordChanged($event)"></app-change-password>
             </div>
         </div>
 
-        <div class="flex justify-end pt-4">
+        <div class="flex justify-end pt-4 border-t border-[#e2e8f0]">
             <app-button
-                customColor="bg-blue-950 text-white hover:bg-gray-500 px-5 py-2 rounded-md"
+                customColor="bg-[#23A997] hover:bg-[#1e9585] text-white font-bold px-8 h-[46px] rounded-xl shadow-sm transition-all flex items-center justify-center"
                 (buttonClick)="onSave()"
             >
                 Save Changes

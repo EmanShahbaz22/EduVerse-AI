@@ -10,7 +10,6 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
   standalone: true,
   imports: [CommonModule, ButtonComponent],
   templateUrl: './hero.component.html',
-  styleUrls: []
 })
 export class HeroComponent {
   
@@ -19,5 +18,13 @@ export class HeroComponent {
    constructor(private router: Router) {}
   navigateToLogin() {
     this.router.navigate(['/login']);
+  }
+  
+  navigateToSignup() {
+    this.router.navigate(['/signup/student']);
+  }
+
+  navigateToAdminSignup() {
+    this.router.navigate(['/signup/admin']);
   }
 }

@@ -1,14 +1,15 @@
 import { Component } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule, NgForm } from '@angular/forms';
 import { NgIf } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { CountrySelectComponent } from '../../../../shared/components/country-select/country-select.component';
+import { PhoneInputComponent } from '../../../../shared/components/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-admin-signup',
   standalone: true,
-  imports: [FormsModule, NgIf, RouterLink],
+  imports: [FormsModule, NgIf, RouterModule, PhoneInputComponent, CountrySelectComponent],
   templateUrl: './admin-signup.component.html',
   styleUrls: ['./admin-signup.component.css'],
 })
@@ -23,54 +24,46 @@ export class AdminSignupComponent {
   profileImageURL = '';
   tenantName = '';
   tenantLogoUrl = '';
+  showPassword = false;
+  showConfirmPassword = false;
 
   errorMessage = '';
+  successMessage = '';
   loading = false;
 
-  constructor(private router: Router, private authService: AuthService) {}
-
-  private normalizeOptionalValue(value: string): string | undefined {
-    const trimmed = (value || '').trim();
-    return trimmed ? trimmed : undefined;
-  }
+  constructor(private router: Router, private authService: AuthService) { }
 
   onSignup() {
-    if (this.loading) return;
     if (!this.validateForm()) return;
+
     this.loading = true;
-    this.errorMessage = '';
 
     const payload = {
-      fullName: this.fullName.trim(),
-      email: this.email.trim().toLowerCase(),
+      fullName: this.fullName,
+      email: this.email,
       password: this.password,
-      contactNo: this.contactNo.trim(),
-      country: this.country.trim(),
+      contactNo: this.contactNo,
+      country: this.country,
       status: this.status,
       role: 'admin',
-      profileImageURL: this.normalizeOptionalValue(this.profileImageURL),
-      tenantName: this.tenantName.trim(),
-      tenantLogoUrl: this.normalizeOptionalValue(this.tenantLogoUrl),
+      profileImageURL: this.profileImageURL,
+      tenantName: this.tenantName,
+      tenantLogoUrl: this.tenantLogoUrl,
     };
 
     this.authService.signup(payload, 'admin').subscribe({
-      next: () => {
+      next: (res) => {
+        console.log('Signup success:', res);
         this.loading = false;
-        this.router.navigate(['/login']);
+        this.successMessage = 'Admin Registration Successful! Setting up your workspace... 🚀';
+        setTimeout(() => {
+          this.router.navigate(['/login']);
+        }, 2000);
       },
       error: (err) => {
+        console.error(err);
         this.loading = false;
-        if (err?.status === 400 || err?.status === 422) {
-          this.errorMessage = getApiErrorMessage(
-            err,
-            'Please check your organization details and try again.',
-          );
-          return;
-        }
-        this.errorMessage = getApiErrorMessage(
-          err,
-          'Unable to create your organization account right now. Please try again.',
-        );
+        this.errorMessage = err.error?.detail?.[0]?.msg || 'Signup failed';
       },
     });
   }
@@ -89,7 +82,6 @@ export class AdminSignupComponent {
       return this.fail('Passwords do not match.');
     if (!this.contactNo.trim()) return this.fail('Contact number is required.');
     if (!this.country.trim()) return this.fail('Country is required.');
-    if (!this.status.trim()) return this.fail('Status is required.');
     if (!this.tenantName.trim()) return this.fail('Tenant name is required.');
 
     return true;
@@ -104,5 +96,4 @@ export class AdminSignupComponent {
     const re = /\S+@\S+\.\S+/;
     return re.test(email);
   }
-
 }

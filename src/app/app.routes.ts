@@ -12,37 +12,34 @@ import { TeacherDashboardComponent } from './features/teacher/pages/teacher-dash
 import { TeacherCoursesComponent } from './features/teacher/pages/teacher-courses/teacher-courses.component';
 import { TeacherSettingsComponent } from './features/teacher/pages/teacher-settings/teacher-settings.component';
 import { TrackStudentComponent } from './features/teacher/pages/track-student/track-student.component';
-import { GenerateAssignmentsComponent } from './features/teacher/pages/generate-assignments/generate-assignments.component';
 import { TeachersComponent } from './features/admin/pages/teachers/teachers.component';
 import { StudentsComponent } from './features/admin/pages/students/students.component';
 import { StudentLayoutComponent } from './layouts/student-layout/student-layout.component';
 import { StudentDashboardComponent } from './features/student/pages/student-dashboard/student-dashboard.component';
 import { StudentCoursesComponent } from './features/student/pages/student-courses/student-courses.component';
-import { StudentQuizzesComponent } from './features/student/pages/student-quizzes/student-quizzes.component';
-import { StudentAssignmentsComponent } from './features/student/pages/student-assignments/student-assignments.component';
 import { LeaderboardComponent } from './features/student/pages/leaderboard/leaderboard.component';
 import { StudentSettingsComponent } from './features/student/pages/student-settings/student-settings.component';
-import { QuizzesComponent } from './features/teacher/pages/quizzes/quizzes.component';
 import { ExploreCoursesComponent } from './features/student/pages/explore-courses/explore-courses.component';
 import { SuperadminDashboardComponent } from './features/super-admin/pages/super-admin-dashboard/super-admin-dashboard.component';
-import { AiAssistantComponent } from './features/student/pages/ai-assistant/ai-assistant.component';
 import { SuperAdminLayoutComponent } from './layouts/super-admin-layout/super-admin-layout.component';
 import { SuperAdminTenantsComponent } from './features/super-admin/pages/super-admin-tenants/super-admin-tenants.component';
 import { SuperAdminSettingsComponent } from './features/super-admin/pages/super-admin-settings/super-admin-settings.component';
-import { SuperAdminSubscriptionPlansComponent } from './features/super-admin/pages/super-admin-subscription-plans/super-admin-subscription-plans.component';
 import { StudentDetailsComponent } from './features/teacher/pages/student-details/student-details.component';
 import { SuperAdminTenantSettingsComponent } from './features/super-admin/pages/super-admin-tenant-settings/super-admin-tenant-settings.component';
+import { SuperAdminSubscriptionsComponent } from './features/super-admin/pages/super-admin-subscriptions/super-admin-subscriptions.component';
+import { SignupComponent } from './features/auth/pages/signup/signup.component';
 import { CourseBuilderComponent } from './features/teacher/pages/course-builder/course-builder.component';
 import { AuthGuard } from './features/auth/guards/auth.guard';
 import { RoleGuard } from './features/auth/guards/role.guard';
 import { StudentSignupComponent } from './features/auth/pages/student-signup/student-signup.component';
-import { TeacherSignupComponent } from './features/auth/pages/teacher-signup/teacher-signup.component';
 import { AdminSignupComponent } from './features/auth/pages/admin-signup/admin-signup.component';
-import { GradeAssignmentsComponent } from './features/teacher/pages/grade-assignments/grade-assignments.component';
 import { CourseDetailComponent } from './features/student/pages/course-detail/course-detail.component';
 import { CoursePlayerComponent } from './features/student/pages/course-player/course-player.component';
-import { PaymentSuccessComponent } from './features/student/pages/payment-success/payment-success.component';
-import { PaymentCancelComponent } from './features/student/pages/payment-cancel/payment-cancel.component';
+import { PrivacyPolicyComponent } from './features/static-pages/privacy-policy/privacy-policy.component';
+import { TermsOfServiceComponent } from './features/static-pages/terms-of-service/terms-of-service.component';
+import { HelpCenterComponent } from './features/static-pages/help-center/help-center.component';
+import { DocumentationComponent } from './features/static-pages/documentation/documentation.component';
+
 
 export const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -51,9 +48,8 @@ export const routes: Routes = [
     component: AuthLayoutComponent,
     children: [
       { path: 'login', component: LoginComponent },
-      { path: 'signup', component: StudentSignupComponent },
-      { path: 'signup/student', redirectTo: 'signup', pathMatch: 'full' },
-      { path: 'signup/teacher', component: TeacherSignupComponent },
+      { path: 'signup', redirectTo: 'signup/student', pathMatch: 'full' },
+      { path: 'signup/student', component: StudentSignupComponent },
       { path: 'signup/admin', component: AdminSignupComponent },
     ],
   },
@@ -83,11 +79,8 @@ export const routes: Routes = [
       { path: 'dashboard', component: TeacherDashboardComponent },
       { path: 'courses', component: TeacherCoursesComponent },
       { path: 'courses/builder/:id', component: CourseBuilderComponent },
-      { path: 'quizzes', component: QuizzesComponent },
-      { path: 'assignments', component: GenerateAssignmentsComponent },
-      { path: 'grade-assignment', component: GradeAssignmentsComponent },
       { path: 'trackstudent', component: TrackStudentComponent },
-      { path: 'student-details/:id', component: StudentDetailsComponent }, // new route
+      { path: 'student-details/:id', component: StudentDetailsComponent }, 
       { path: 'settings', component: TeacherSettingsComponent },
     ],
   },
@@ -101,18 +94,13 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: StudentDashboardComponent },
       { path: 'courses', component: StudentCoursesComponent },
-      { path: 'quizzes', component: StudentQuizzesComponent },
-      { path: 'assignments', component: StudentAssignmentsComponent },
-      { path: 'ai-assistant', component: AiAssistantComponent },
       { path: 'leaderboard', component: LeaderboardComponent },
       { path: 'settings', component: StudentSettingsComponent },
       { path: 'explore-courses', component: ExploreCoursesComponent },
       { path: 'enroll-course/:id', component: CourseDetailComponent },
-      { path: 'payment-success', component: PaymentSuccessComponent },
-      { path: 'payment-cancel', component: PaymentCancelComponent },
-      { path: 'learn/:id', component: CoursePlayerComponent },
     ],
   },
+  { path: 'student/learn/:id', component: CoursePlayerComponent },
   {
     path: 'super-admin',
     component: SuperAdminLayoutComponent,
@@ -122,7 +110,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: SuperadminDashboardComponent },
       { path: 'tenants', component: SuperAdminTenantsComponent },
-      { path: 'subscription-plans', component: SuperAdminSubscriptionPlansComponent },
+      { path: 'subscriptions', component: SuperAdminSubscriptionsComponent },
       { path: 'settings', component: SuperAdminSettingsComponent },
       {
         path: 'tenant-settings/:id',
@@ -130,6 +118,13 @@ export const routes: Routes = [
       },
     ],
   },
+
+  // Static pages
+  { path: 'privacy-policy', component: PrivacyPolicyComponent },
+  { path: 'terms-of-service', component: TermsOfServiceComponent },
+  { path: 'help-center', component: HelpCenterComponent },
+  { path: 'documentation', component: DocumentationComponent },
+
 
   { path: '**', component: NotFoundComponent },
 ];

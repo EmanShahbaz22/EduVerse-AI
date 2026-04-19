@@ -1,5 +1,3 @@
-
-
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,7 +13,7 @@ import { AuthService } from '../../../features/auth/services/auth.service';
 import { ToastService } from '../../services/toast.service';
 
 import { StudentProfileService } from '../../services/student-profile-service';
-import { AdminService } from '../../services/admin-profile.service';
+import { AdminProfileService } from '../../services/admin-profile.service';
 import { TeacherProfileService } from '../../services/teacher-profile.service';
 
 @Component({
@@ -39,7 +37,7 @@ export class ChangePasswordComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private studentService: StudentProfileService,
-    private adminService: AdminService,
+    private adminService: AdminProfileService,
     private teacherService: TeacherProfileService,
     private authService: AuthService,
     private toastService: ToastService,

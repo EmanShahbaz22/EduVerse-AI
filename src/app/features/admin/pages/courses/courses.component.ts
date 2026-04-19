@@ -1,23 +1,25 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { DataTableComponent, TableColumn } from '../../../../shared/components/data-table/data-table.component';
 import { FiltersComponent } from '../../../../shared/components/filters/filters.component';
-import { AdminService } from '../../../../core/services/admin.service';
+import { AdminService, AdminTeacher } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { BackendCourse } from '../../../../core/services/course.service';
 import { EntityModalComponent, FormField } from '../../../../shared/components/entity-modal/entity-modal.component';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
+import { CourseCategoriesSettingsComponent } from '../../components/course-categories-settings/course-categories-settings.component';
 
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [HeaderComponent, DataTableComponent, FiltersComponent, CommonModule, EntityModalComponent],
+  imports: [HeaderComponent, DataTableComponent, FiltersComponent, CommonModule, EntityModalComponent, CourseCategoriesSettingsComponent],
   templateUrl: './courses.component.html',
   styleUrl: './courses.component.css',
 })
 export class CoursesComponent implements OnInit {
+  activeTab: 'courses' | 'categories' = 'courses';
   currentPage = 1;
 
   onPageChange(page: number) {
@@ -33,34 +35,25 @@ export class CoursesComponent implements OnInit {
       key: 'status',
       label: 'Status',
       type: 'badge',
-      badgeColors: {
-        Active: 'bg-green-100 text-green-800',
-        active: 'bg-green-100 text-green-800',
-        Inactive: 'bg-red-100 text-red-800',
-        inactive: 'bg-red-100 text-red-800',
-        Upcoming: 'bg-blue-100 text-blue-800',
-        upcoming: 'bg-blue-100 text-blue-800',
-        Completed: 'bg-gray-100 text-gray-800',
-        completed: 'bg-gray-100 text-gray-800',
-      },
     },
   ];
 
   courses: BackendCourse[] = [];
   filteredCourses: BackendCourse[] = [];
-  teachers: any[] = [];
+  teachers: AdminTeacher[] = [];
   loading: boolean = true;
+  highlightedRowId: string | null = null;
 
   // Modal state
   isModalOpen = false;
   isEditMode = true; // Admin can only edit, not create
   modalTitle = 'Edit Course';
-  selectedCourse: any = null;
+  selectedCourse: BackendCourse | null = null;
 
   // Admin can only edit status - simplified fields
   courseFields: FormField[] = [
-    { name: 'title', label: 'Course Title', type: 'text', required: false, placeholder: 'Course title (read-only)' },
-    { name: 'instructorName', label: 'Instructor', type: 'text', required: false, placeholder: 'Instructor name' },
+    { name: 'title', label: 'Course Title', type: 'text', required: true, placeholder: 'Course title' },
+    { name: 'instructorName', label: 'Instructor', type: 'text', required: false, placeholder: 'Instructor name (read-only)', disabled: true },
     {
       name: 'status', label: 'Status', type: 'select', options: [
         { value: 'draft', label: 'Draft' },
@@ -74,20 +67,26 @@ export class CoursesComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private authService: AuthService,
-    private toastService: ToastService,
+    private confirmDialogService: ConfirmDialogService,
+    private route: ActivatedRoute
   ) { }
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['highlight']) {
+        this.highlightedRowId = params['highlight'];
+      }
+    });
     // Load teachers first to have data for mapping names
     this.loadTeachers();
   }
 
   loadTeachers() {
     this.adminService.getTeachers().subscribe({
-      next: (teachers: any[]) => {
+      next: (teachers: AdminTeacher[]) => {
         this.teachers = teachers;
         const teacherOptions = teachers.map(t => ({
-          value: t.id || t._id,
+          value: t.id || t._id || '',
           label: t.fullName
         }));
 
@@ -101,9 +100,6 @@ export class CoursesComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error loading teachers for dropdown', err);
-        this.toastService.warning(
-          getApiErrorMessage(err, 'Unable to load teachers right now. Instructor names may be incomplete.')
-        );
         // Load courses even if teachers fail, though names will be TBD
         this.loadCourses();
       }
@@ -113,8 +109,8 @@ export class CoursesComponent implements OnInit {
   loadCourses() {
     this.loading = true;
     this.adminService.getCourses().subscribe({
-      next: (data: any[]) => {
-        this.courses = data.map((c: any) => {
+      next: (data: BackendCourse[]) => {
+        this.courses = data.map(c => {
           // Try to find teacher name if missing
           const teacher = this.teachers.find(t => (t.id || t._id) === c.teacherId);
           return {
@@ -127,9 +123,6 @@ export class CoursesComponent implements OnInit {
       },
       error: (err: { message: string }) => {
         console.error('Error loading courses', err);
-        this.toastService.error(
-          getApiErrorMessage(err, 'Unable to load courses right now.')
-        );
         this.loading = false;
       }
     });
@@ -144,17 +137,15 @@ export class CoursesComponent implements OnInit {
     this.isModalOpen = true;
   }
 
-  onDeleteCourse(course: BackendCourse) {
-    if (confirm(`Are you sure you want to delete ${course.title}?`)) {
-      this.adminService.deleteCourse((course as any).id || (course as any)._id).subscribe({
+  async onDeleteCourse(course: BackendCourse) {
+    const isConfirmed = await this.confirmDialogService.confirmDelete(course.title);
+    if (isConfirmed) {
+      this.adminService.deleteCourse(course.id || course._id!).subscribe({
         next: () => {
-          this.toastService.success('Course deleted successfully.');
           this.loadCourses();
         },
-        error: (err) => {
-          this.toastService.error(
-            getApiErrorMessage(err, 'Failed to delete course.')
-          );
+        error: async (err) => {
+          await this.confirmDialogService.alert(`Failed to delete course: ${err.error?.detail || 'Unknown error'}`, 'Error', 'danger');
         }
       });
     }
@@ -165,28 +156,26 @@ export class CoursesComponent implements OnInit {
     this.selectedCourse = null;
   }
 
-  onModalSubmit(formData: any) {
-    // Admin can only update status
+  onModalSubmit(formData: Partial<BackendCourse>) {
+    // Admin can update title and status
     const courseData = {
+      title: formData.title,
       status: formData.status
     };
 
     const request = this.adminService.updateCourse(
-      (this.selectedCourse as any).id || (this.selectedCourse as any)._id, 
+      this.selectedCourse!.id || this.selectedCourse!._id!,
       courseData
     );
 
     request.subscribe({
       next: () => {
-        this.toastService.success('Course status updated successfully.');
         this.onModalClose();
         this.loadCourses();
       },
-      error: (err) => {
+      error: async (err) => {
         console.error('Update error:', err);
-        this.toastService.error(
-          getApiErrorMessage(err, 'Failed to update course status.')
-        );
+        await this.confirmDialogService.alert(`Failed to update course status: ${err.error?.detail || JSON.stringify(err.error) || 'Unknown error'}`, 'Error', 'danger');
       }
     });
   }
@@ -194,7 +183,7 @@ export class CoursesComponent implements OnInit {
   onFiltersChange(filters: { [key: string]: string }) {
     this.currentPage = 1;
     this.filteredCourses = this.courses.filter((c: BackendCourse) => {
-      const instructorName = (c as any).instructorName || 'TBD';
+      const instructorName = c.instructorName || 'TBD';
       const matchesSearch = !filters['search'] ||
         (c.title && c.title.toLowerCase().includes(filters['search'].toLowerCase())) ||
         (instructorName.toLowerCase().includes(filters['search'].toLowerCase())) ||

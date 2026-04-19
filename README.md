@@ -1,28 +1,100 @@
-# EduVerse AI Frontend
+# EduVerse Frontend
 
-Angular 19 frontend for EduVerse-AI.
+Angular 19 frontend for the EduVerse multi-tenant e-learning platform.
 
-## Run
+## Stack
+
+Angular 19
+
+Tailwind CSS
+
+RxJS
+
+Chart.js / ng2-charts
+
+Stripe Embedded Checkout
+
+`ngx-markdown`
+
+## Core Product Areas
+
+- Auth: login, signup, role-based entry flows
+- Admin: dashboard, teachers, students, courses, billing, settings
+- Super Admin: tenants, subscriptions, platform settings
+- Teacher: dashboard, course management, course builder, student tracking
+- Student: dashboard, my courses, explore, course details, course player, leaderboard, settings
+- Public: landing page, pricing, documentation/help/legal pages
+
+## Configuration
+
+Frontend runtime-style build configuration is centralized here:
+
+- [src/environments/environment.ts](./src/environments/environment.ts)
+- [src/environments/environment.development.ts](./src/environments/environment.development.ts)
+- [src/app/core/constants/api.constants.ts](./src/app/core/constants/api.constants.ts)
+- [src/app/core/constants/app.constants.ts](./src/app/core/constants/app.constants.ts)
+
+If the backend URL, app branding, or shared limits change, update the environment/constants files instead of editing individual services.
+
+## Local Development
+
+Install dependencies:
+
 ```bash
 npm install
-npm start
+```
+
+Run the dev server:
+
+```bash
+npm run dev
+```
+
+App URL:
+
+```text
+http://localhost:4200
 ```
 
 ## Build
+
 ```bash
 npm run build
 ```
 
-Production font inlining is disabled to keep CI/offline builds stable in restricted-network environments.
+Production output is generated in:
 
-## API Contract Notes
-1. Auth is cookie-based (`withCredentials`) and no local bearer token is required.
-2. Quiz submission payload now sends only:
-   - `quizId`
-   - `courseId`
-   - `answers`
-3. Student enrollment identity is server-derived; client-provided `studentId`/`tenantId` are ignored for student role.
-4. Payment checkout only requires `courseId`; `tenantId` is optional and ignored for student identity enforcement.
+```text
+dist/setting-page
+```
 
-## Static Data Audit
-See [docs/STATIC_DATA_AUDIT.md](docs/STATIC_DATA_AUDIT.md).
+## Test
+
+```bash
+npm test
+```
+
+## Project Structure
+
+```text
+src/
+  app/
+    core/         shared app constants, interceptors, global services
+    features/     role-based modules and public pages
+    layouts/      admin / teacher / student / auth / super-admin shells
+    shared/       reusable UI components, shared models, shared services
+  environments/   environment-specific build config
+```
+
+## UI Guidelines
+
+- Prefer Tailwind utilities over component-specific CSS whenever practical.
+- Keep shared visual decisions in reusable components and shared constants.
+- Avoid hardcoding API URLs, storage keys, plan caps, or branding strings inside feature components.
+- Reuse existing shared components before introducing new one-off markup patterns.
+
+## Notes
+
+- `intl-tel-input` styling still uses a small amount of custom CSS because it is a third-party widget.
+- Some complex screens like the course player still keep a limited amount of custom CSS for behavior-heavy layout cases.
+- Responsive behavior has been improved in the shared layouts and key pages, but final device QA should still be done in a real browser.

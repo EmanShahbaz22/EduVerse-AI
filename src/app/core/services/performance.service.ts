@@ -13,9 +13,23 @@ export interface StudentPerformance {
     marks: number;
     totalMarks: number;
     grade: string;
-    attendance: number;
     progress: number;
     lastUpdated?: string;
+}
+
+export interface GenericScoreItem {
+    id: string;
+    title: string;
+    score: number | string;
+    total: number;
+    scoreDisplay: string;
+}
+
+export interface DetailedCoursePerformance {
+    courseId: string;
+    courseName: string;
+    studentName: string;
+    quizzes: GenericScoreItem[];
 }
 
 @Injectable({
@@ -27,12 +41,17 @@ export class PerformanceService {
 
     // Get performance for a specific student (Student view)
     getStudentPerformance(studentId: string, tenantId: string): Observable<StudentPerformance[]> {
-        return this.http.get<StudentPerformance[]>(`${ENDPOINTS.PERFORMANCE.BASE}/${tenantId}/${studentId}`);
+        return this.http.get<StudentPerformance[]>(`${ENDPOINTS.PERFORMANCE.BASE}/${studentId}?tenantId=${tenantId}`);
     }
 
     // Get performances for a specific teacher's courses
     getTeacherPerformances(teacherId: string, tenantId: string): Observable<StudentPerformance[]> {
         return this.http.get<StudentPerformance[]>(`${ENDPOINTS.PERFORMANCE.BASE}/teacher/${teacherId}?tenantId=${tenantId}`);
+    }
+
+    // Get detailed aggregate performances for a specific student across a teacher's courses
+    getStudentDetailedPerformance(teacherId: string, studentId: string, tenantId: string): Observable<DetailedCoursePerformance[]> {
+        return this.http.get<DetailedCoursePerformance[]>(`${ENDPOINTS.PERFORMANCE.BASE}/teacher/${teacherId}/student/${studentId}/details?tenantId=${tenantId}`);
     }
 
     // Get performances for a tenant (Admin view)
@@ -47,9 +66,11 @@ export class PerformanceService {
     // Create or update performance
     savePerformance(performance: StudentPerformance): Observable<StudentPerformance> {
         if (performance._id) {
-            return this.http.put<StudentPerformance>(`${ENDPOINTS.PERFORMANCE.BASE}/${performance._id}?tenantId=${performance.tenantId}`, performance);
+            return this.http.put<StudentPerformance>(`${ENDPOINTS.PERFORMANCE.BASE}/${performance._id}?tenantId=${performance.tenantId}`, performance, {
+            });
         } else {
-            return this.http.post<StudentPerformance>(`${ENDPOINTS.PERFORMANCE.BASE}/?tenantId=${performance.tenantId}`, performance);
+            return this.http.post<StudentPerformance>(`${ENDPOINTS.PERFORMANCE.BASE}/?tenantId=${performance.tenantId}`, performance, {
+            });
         }
     }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { ENDPOINTS } from '../../core/constants/api.constants';
 import {
   AdminChangePasswordPayload,
   AdminProfile,
@@ -11,8 +11,8 @@ import {
 @Injectable({
   providedIn: 'root',
 })
-export class AdminService {
-  private readonly API_URL = `${environment.apiUrl}/admin`;
+export class AdminProfileService {
+  private readonly API_URL = ENDPOINTS.ADMINS.BASE.replace('/dashboard', '');
 
   constructor(private http: HttpClient) {}
 

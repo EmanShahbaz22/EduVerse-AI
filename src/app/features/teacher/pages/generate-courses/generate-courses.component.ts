@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, OnInit, Output } from '@angular/core';
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import {
@@ -9,10 +9,12 @@ import {
   Validators,
 } from '@angular/forms';
 import { NgFor, NgIf } from '@angular/common';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { CourseService } from '../../../../core/services/course.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { ToastService } from '../../../../shared/services/toast.service';
-import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import { ConfirmDialogService } from '../../../../shared/services/confirm-dialog.service';
+import { CourseMetadataService } from '../../../../shared/services/course-metadata.service';
 
 @Component({
   selector: 'app-generate-courses',
@@ -28,37 +30,61 @@ import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
   styleUrl: './generate-courses.component.css',
   standalone: true
 })
-export class GenerateCoursesComponent {
+export class GenerateCoursesComponent implements OnInit, OnDestroy {
   @Output() courseCreated = new EventEmitter<any>();
   @Output() cancelled = new EventEmitter<void>();
+  private destroy$ = new Subject<void>();
 
   courseForm: FormGroup;
   isSubmitting = false;
   uploadedFiles: File[] = [];
   isDragging = false;
+  isLoadingMetadata = true;
+  metadataError: string | null = null;
 
-  categories = [
-    'Mathematics',
-    'Science',
-    'History',
-    'Language',
-    'Arts',
-    'Technology',
-    'Business',
-    'Other',
-  ];
+  categories: string[] = [];
 
   constructor(
     private fb: FormBuilder,
-    private courseService: CourseService,
-    private authService: AuthService,
-    private toastService: ToastService,
+    private courseService: CourseService, // UPDATED: Injected CourseService
+    private authService: AuthService,      // UPDATED: Injected AuthService
+    private confirmDialogService: ConfirmDialogService,
+    private courseMetadataService: CourseMetadataService
   ) {
     this.courseForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]],
       category: ['', Validators.required],
       description: [''],
     });
+  }
+
+  ngOnInit(): void {
+    this.loadCourseMetadata();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadCourseMetadata(forceRefresh = false): void {
+    this.isLoadingMetadata = true;
+    this.metadataError = null;
+
+    this.courseMetadataService
+      .getMetadata(forceRefresh)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (metadata) => {
+          this.categories = metadata.categories;
+          this.isLoadingMetadata = false;
+        },
+        error: (err) => {
+          console.error('Failed to load course metadata:', err);
+          this.metadataError = 'Unable to load course categories.';
+          this.isLoadingMetadata = false;
+        },
+      });
   }
 
   onFileSelected(event: any): void {
@@ -95,7 +121,11 @@ export class GenerateCoursesComponent {
     this.uploadedFiles.splice(index, 1);
   }
 
-  onSubmit(): void {
+  async onSubmit(): Promise<void> {
+    if (this.isLoadingMetadata || this.metadataError) {
+      return;
+    }
+
     if (this.courseForm.valid) {
       const user = this.authService.getUser();
       const tenantId = this.authService.getTenantId();
@@ -116,20 +146,18 @@ export class GenerateCoursesComponent {
         // UPDATED: Call real backend service
         this.courseService.createCourse(courseData).subscribe({
           next: (res) => {
+
             this.courseCreated.emit(res);
-            this.toastService.success('Course created successfully.');
             this.isSubmitting = false;
           },
-          error: (err) => {
+          error: async (err) => {
             console.error('Course creation failed', err);
-            this.toastService.error(
-              getApiErrorMessage(err, 'Failed to create course.')
-            );
+            await this.confirmDialogService.alert(`Failed to create course: ${err.error?.detail || 'Unknown error'}`, 'Error', 'danger');
             this.isSubmitting = false;
           }
         });
       } else {
-        this.toastService.error('You must be logged in as a teacher to create courses.');
+        await this.confirmDialogService.alert('You must be logged in as a teacher to create courses.', 'Authentication Required', 'warning');
       }
     } else {
       Object.keys(this.courseForm.controls).forEach((key) => {
