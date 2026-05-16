@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:8000',
+  apiBaseUrl: 'https://eduverse-ai-backend.up.railway.app',
   appName: 'EduVerse',
   supportEmail: 'support@eduverse.com',
   maxSubscriptionPlans: 3,
